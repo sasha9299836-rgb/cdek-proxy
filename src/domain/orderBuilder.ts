@@ -1,4 +1,4 @@
-﻿import type { PackagingPreset } from "../config/env";
+import type { PackagingPreset } from "../config/env";
 import type { OriginProfile } from "./originProfiles";
 import { getPackagingServices } from "./packagingPresets";
 
@@ -17,14 +17,14 @@ export type ItemInput = {
 };
 
 export type ShippingQuoteInput = {
-  originProfile?: "MSK" | "YAN";
+  originProfile?: "ODN" | "YAN";
   packagingPreset?: PackagingPreset;
   receiverCityCode: number | string;
   package: PackageInput;
 };
 
 export type ShippingCreateInput = {
-  originProfile?: "MSK" | "YAN";
+  originProfile?: "ODN" | "YAN";
   packagingPreset?: PackagingPreset;
   receiverCityCode?: number | string;
   deliveryPoint: string;
@@ -45,13 +45,14 @@ function toNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function buildItems(items: ItemInput[] | undefined, packageInput: PackageInput) {
+export function buildItems(items: ItemInput[] | undefined, packageInput: PackageInput) {
   const source = items?.length
     ? items
     : [{ cost: 0, amount: 1, weight: packageInput.weight, paymentValue: 0 }];
 
   return source.map((item) => ({
-    name: "одежда",
+    // CDEK expects a meaningful item name in the order payload.
+    name: "clothes",
     ware_key: "poizon",
     cost: toNumber(item.cost, 0),
     amount: toNumber(item.amount, 1),

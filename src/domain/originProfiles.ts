@@ -17,26 +17,26 @@ export function parseOriginProfile(value: unknown, fallback?: OriginProfileCode)
     if (fallback) {
       return fallback;
     }
-    throw new HttpError(400, "INVALID_ORIGIN_PROFILE", "originProfile must be MSK or YAN");
+    throw new HttpError(400, "INVALID_ORIGIN_PROFILE", "Неизвестный профиль отправки");
   }
 
-  if (value === "MSK" || value === "YAN") {
+  if (value === "ODN" || value === "YAN") {
     return value;
   }
 
-  throw new HttpError(400, "INVALID_ORIGIN_PROFILE", "originProfile must be MSK or YAN");
+  throw new HttpError(400, "INVALID_ORIGIN_PROFILE", "Неизвестный профиль отправки");
 }
 
 export function getOriginProfile(config: AppConfig, code: OriginProfileCode): OriginProfile {
-  if (code === "MSK") {
+  if (code === "ODN") {
     return {
-      id: "MSK",
+      id: "ODN",
       shipmentPoint: config.odnShipmentPoint,
-      cityCode: config.mskCityCode,
+      cityCode: config.odnCityCode,
       cityName: "Одинцово",
       preferredTariffs: [234, 136],
-      senderName: config.senderName,
-      senderPhone: config.senderPhone,
+      senderName: config.odnSenderName,
+      senderPhone: config.odnSenderPhone,
       sellerName: config.sellerName,
     };
   }
@@ -47,8 +47,8 @@ export function getOriginProfile(config: AppConfig, code: OriginProfileCode): Or
     cityCode: config.yanCityCode,
     cityName: "Янино-1",
     preferredTariffs: [234, 136],
-    senderName: config.senderName,
-    senderPhone: config.senderPhone,
+    senderName: config.yanSenderName,
+    senderPhone: config.yanSenderPhone,
     sellerName: config.sellerName,
   };
 }

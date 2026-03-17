@@ -10,7 +10,7 @@ type TokenCacheEntry = {
 const tokenCache: Partial<Record<OriginProfileCode, TokenCacheEntry>> = {};
 
 function getCredentials(config: AppConfig, profile: OriginProfileCode) {
-  if (profile === "MSK") {
+  if (profile === "ODN") {
     return {
       clientId: config.odnClientId,
       clientSecret: config.odnClientSecret,

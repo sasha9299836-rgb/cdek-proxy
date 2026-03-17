@@ -1,8 +1,9 @@
 ﻿import dotenv from "dotenv";
+import path from "node:path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
-export type OriginProfileCode = "MSK" | "YAN";
+export type OriginProfileCode = "ODN" | "YAN";
 export type PackagingPreset = "A2" | "A3" | "A4";
 
 export type AppConfig = {
@@ -14,10 +15,12 @@ export type AppConfig = {
   yanClientSecret: string;
   odnShipmentPoint: string;
   yanShipmentPoint: string;
-  mskCityCode: number;
+  odnCityCode: number;
   yanCityCode: number;
-  senderName: string;
-  senderPhone: string;
+  odnSenderName: string;
+  odnSenderPhone: string;
+  yanSenderName: string;
+  yanSenderPhone: string;
   sellerName: string;
 };
 
@@ -52,9 +55,11 @@ export const env: AppConfig = {
   yanClientSecret: readRequired("CDEK_YAN_CLIENT_SECRET"),
   odnShipmentPoint: process.env.CDEK_ODN_SHIPMENT_POINT?.trim() || "ODN8",
   yanShipmentPoint: process.env.CDEK_YAN_SHIPMENT_POINT?.trim() || "YANN10",
-  mskCityCode: readNumber("CDEK_MSK_CITY_CODE", 520),
+  odnCityCode: readNumber("CDEK_ODN_CITY_CODE", 520),
   yanCityCode: readNumber("CDEK_YAN_CITY_CODE", 13059),
-  senderName: readRequired("CDEK_SENDER_NAME"),
-  senderPhone: readRequired("CDEK_SENDER_PHONE"),
+  odnSenderName: readRequired("CDEK_ODN_SENDER_NAME"),
+  odnSenderPhone: readRequired("CDEK_ODN_SENDER_PHONE"),
+  yanSenderName: readRequired("CDEK_YAN_SENDER_NAME"),
+  yanSenderPhone: readRequired("CDEK_YAN_SENDER_PHONE"),
   sellerName: process.env.CDEK_SELLER_NAME?.trim() || "AES ISLAND",
 };

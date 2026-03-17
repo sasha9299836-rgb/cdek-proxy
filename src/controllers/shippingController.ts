@@ -42,7 +42,7 @@ export function validateQuoteBody(body: unknown): ShippingQuoteInput {
   }
 
   return {
-    originProfile: parseOriginProfile(body.originProfile, "MSK"),
+    originProfile: parseOriginProfile(body.originProfile, "ODN"),
     packagingPreset: body.packagingPreset as ShippingQuoteInput["packagingPreset"],
     receiverCityCode: body.receiverCityCode as string | number,
     package: body.package as ShippingQuoteInput["package"],
@@ -82,7 +82,7 @@ export function validateCreateBody(body: unknown): ShippingCreateInput {
   }
 
   return {
-    originProfile: parseOriginProfile(body.originProfile, "MSK"),
+    originProfile: parseOriginProfile(body.originProfile, "ODN"),
     packagingPreset: body.packagingPreset as ShippingCreateInput["packagingPreset"],
     receiverCityCode: body.receiverCityCode as string | number | undefined,
     deliveryPoint: body.deliveryPoint as string,

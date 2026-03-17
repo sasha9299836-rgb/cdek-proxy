@@ -6,10 +6,10 @@ export async function registerHealthRoutes(app: FastifyInstance) {
     ok: true,
     base: env.cdekBaseUrl,
     profiles: {
-      MSK: {
+      ODN: {
         shipmentPoint: env.odnShipmentPoint,
         credentialsConfigured: Boolean(env.odnClientId && env.odnClientSecret),
-        cityCode: env.mskCityCode,
+        cityCode: env.odnCityCode,
       },
       YAN: {
         shipmentPoint: env.yanShipmentPoint,

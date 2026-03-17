@@ -1,0 +1,15 @@
+﻿process.env.CDEK_BASE_URL = process.env.CDEK_BASE_URL || "https://api.cdek.ru";
+process.env.CDEK_ODN_CLIENT_ID = process.env.CDEK_ODN_CLIENT_ID || "test-odn-client";
+process.env.CDEK_ODN_CLIENT_SECRET = process.env.CDEK_ODN_CLIENT_SECRET || "test-odn-secret";
+process.env.CDEK_YAN_CLIENT_ID = process.env.CDEK_YAN_CLIENT_ID || "test-yan-client";
+process.env.CDEK_YAN_CLIENT_SECRET = process.env.CDEK_YAN_CLIENT_SECRET || "test-yan-secret";
+process.env.CDEK_ODN_SHIPMENT_POINT = process.env.CDEK_ODN_SHIPMENT_POINT || "ODN8";
+process.env.CDEK_YAN_SHIPMENT_POINT = process.env.CDEK_YAN_SHIPMENT_POINT || "YANN10";
+process.env.CDEK_ODN_CITY_CODE = process.env.CDEK_ODN_CITY_CODE || "520";
+process.env.CDEK_YAN_CITY_CODE = process.env.CDEK_YAN_CITY_CODE || "13059";
+process.env.CDEK_ODN_SENDER_NAME = process.env.CDEK_ODN_SENDER_NAME || "Test Sender ODN";
+process.env.CDEK_ODN_SENDER_PHONE = process.env.CDEK_ODN_SENDER_PHONE || "+79990000000";
+process.env.CDEK_YAN_SENDER_NAME = process.env.CDEK_YAN_SENDER_NAME || "Голумбевский Артемий Максимович";
+process.env.CDEK_YAN_SENDER_PHONE = process.env.CDEK_YAN_SENDER_PHONE || "+79117155960";
+process.env.CDEK_SELLER_NAME = process.env.CDEK_SELLER_NAME || "AES ISLAND";
+process.env.PORT = process.env.PORT || "8787";

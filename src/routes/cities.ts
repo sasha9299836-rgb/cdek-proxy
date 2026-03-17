@@ -37,7 +37,7 @@ export async function registerCitiesRoutes(app: FastifyInstance) {
     }
 
     const path = `/v2/location/suggest/cities?country_code=RU&name=${encodeURIComponent(q)}&size=${encodeURIComponent(size)}`;
-    const response = await cdekGet<any>(env, "MSK", path);
+    const response = await cdekGet<any>(env, "ODN", path);
     return normalizeCities(response);
   };
 

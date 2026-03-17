@@ -24,7 +24,7 @@ export async function registerPvzRoutes(app: FastifyInstance) {
       throw new HttpError(400, "CITY_CODE_REQUIRED", "cityCode is required");
     }
 
-    const response = await cdekGet<any>(env, "MSK", `/v2/deliverypoints?city_code=${encodeURIComponent(cityCode)}`);
+    const response = await cdekGet<any>(env, "ODN", `/v2/deliverypoints?city_code=${encodeURIComponent(cityCode)}`);
     return normalizePvz(response);
   };
 

@@ -1,5 +1,4 @@
-﻿import Fastify from "fastify";
-import pino from "pino";
+import Fastify from "fastify";
 import { env } from "./config/env";
 import { registerHealthRoutes } from "./routes/health";
 import { registerCitiesRoutes } from "./routes/cities";
@@ -7,11 +6,11 @@ import { registerPvzRoutes } from "./routes/pvz";
 import { registerShippingRoutes } from "./routes/shipping";
 import { registerErrorHandler } from "./utils/errorHandler";
 
-async function buildServer() {
+export async function buildServer() {
   const app = Fastify({
-    logger: pino({
+    logger: {
       level: process.env.LOG_LEVEL || "info",
-    }),
+    },
   });
 
   app.addHook("onRequest", async (_request, reply) => {
@@ -42,7 +41,9 @@ async function start() {
   });
 }
 
-start().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
