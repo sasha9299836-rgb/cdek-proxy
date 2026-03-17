@@ -3,6 +3,24 @@ import type { AppConfig, OriginProfileCode } from "../config/env";
 import { HttpError } from "../utils/httpError";
 import { getCdekToken } from "./cdekAuth";
 
+function safeParseUpstreamBody(body: unknown) {
+  if (typeof body === "string") {
+    const trimmed = body.trim();
+    if (!trimmed) return { rawText: "", parsedJson: null };
+    try {
+      return { rawText: trimmed, parsedJson: JSON.parse(trimmed) };
+    } catch {
+      return { rawText: trimmed, parsedJson: null };
+    }
+  }
+
+  if (body && typeof body === "object") {
+    return { rawText: null, parsedJson: body };
+  }
+
+  return { rawText: body == null ? null : String(body), parsedJson: null };
+}
+
 export async function cdekGet<T>(config: AppConfig, profile: OriginProfileCode, path: string): Promise<T> {
   const token = await getCdekToken(config, profile);
 
@@ -39,11 +57,34 @@ export async function cdekPost<T>(config: AppConfig, profile: OriginProfileCode,
 
     return response.data;
   } catch (error: any) {
+    const responseStatus = error?.response?.status || 502;
+    const responseBody = error?.response?.data;
+
+    if (path === "/v2/orders") {
+      const parsed = safeParseUpstreamBody(responseBody);
+      const externalOrderId =
+        payload && typeof payload === "object" && typeof (payload as Record<string, unknown>).number === "string"
+          ? (payload as Record<string, unknown>).number
+          : null;
+
+      console.error(
+        JSON.stringify({
+          scope: "cdek-proxy",
+          event: "cdek_create_order_upstream_error",
+          originProfile: profile,
+          cdekPath: path,
+          externalOrderId,
+          httpStatus: responseStatus,
+          upstreamBody: parsed.parsedJson ?? parsed.rawText ?? null,
+        }),
+      );
+    }
+
     throw new HttpError(
-      error?.response?.status || 502,
+      responseStatus,
       "CDEK_REQUEST_FAILED",
       "Ошибка запроса к CDEK API",
-      error?.response?.data,
+      responseBody,
     );
   }
 }
