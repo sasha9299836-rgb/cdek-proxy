@@ -21,6 +21,20 @@ function assertNoForbiddenFields(
   }
 }
 
+function readOptionalTariffCode(body: Record<string, unknown>): number | undefined {
+  const raw = body.tariffCode ?? body.tariff_code;
+  if (raw == null || raw === "") {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new HttpError(400, "INVALID_TARIFF_CODE", "tariffCode must be a positive number");
+  }
+
+  return parsed;
+}
+
 export function validateQuoteBody(body: unknown): ShippingQuoteInput {
   if (!isObject(body)) {
     throw new HttpError(400, "INVALID_BODY", "Invalid JSON body");
@@ -56,7 +70,7 @@ export function validateCreateBody(body: unknown): ShippingCreateInput {
 
   assertNoForbiddenFields(
     body,
-    ["type", "packages", "shipment_point", "delivery_point", "tariff_code"],
+    ["type", "packages", "shipment_point", "delivery_point"],
     "RAW_PAYLOAD_NOT_ALLOWED",
     "Raw CDEK payload is not allowed for /api/shipping/create",
   );
@@ -87,7 +101,7 @@ export function validateCreateBody(body: unknown): ShippingCreateInput {
     receiverCityCode: body.receiverCityCode as string | number | undefined,
     deliveryPoint: body.deliveryPoint as string,
     externalOrderId: body.externalOrderId as string,
-    tariffCode: body.tariffCode as number | undefined,
+    tariffCode: readOptionalTariffCode(body),
     deliveryRecipientCost: body.deliveryRecipientCost as number | undefined,
     recipient: body.recipient as ShippingCreateInput["recipient"],
     package: body.package as ShippingCreateInput["package"],

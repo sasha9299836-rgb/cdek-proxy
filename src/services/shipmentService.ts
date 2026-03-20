@@ -106,7 +106,15 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
   });
 
   let tariffCode = input.tariffCode;
-  if (!tariffCode) {
+  if (tariffCode != null) {
+    logShipmentProxyEvent("tariff_forced_direct_usage", {
+      externalOrderId: input.externalOrderId,
+      originProfile: profile.id,
+      tariffCode,
+    });
+  }
+
+  if (tariffCode == null) {
     // When tariffCode is already fixed upstream, create must reuse it and skip recalculation.
     if (!input.receiverCityCode) {
       throw new HttpError(400, "RECEIVER_CITY_CODE_REQUIRED", "receiverCityCode is required when tariffCode is missing");
