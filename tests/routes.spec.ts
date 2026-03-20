@@ -100,6 +100,38 @@ describe("shipping routes", () => {
     await app.close();
   });
 
+  it("POST /api/shipping/quote falls back to direct tariff check when tarifflist has no 136/234", async () => {
+    const mockedAxios = vi.mocked(axios, { partial: false });
+    mockedAxios.post
+      .mockResolvedValueOnce({ data: { access_token: "token", expires_in: 3600 } })
+      .mockResolvedValueOnce({ data: { tariffs: [{ tariff_code: 999, tariff_name: "Other tariff" }] } })
+      .mockResolvedValueOnce({ data: { delivery_sum: 510, period_min: 3, period_max: 6 } });
+
+    const { buildServer } = await import("../src/server");
+    const app = await buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/shipping/quote",
+      payload: {
+        originProfile: "ODN",
+        packagingPreset: "A3",
+        receiverCityCode: 44,
+        package: { weight: 400, length: 15, width: 10, height: 4 },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      selectedTariffCode: 234,
+    });
+
+    const postCalls = mockedAxios.post.mock.calls.map((call) => String(call[0]));
+    expect(postCalls.some((url) => url.includes("/v2/calculator/tariff"))).toBe(true);
+
+    await app.close();
+  });
+
   it("POST /api/shipping/create uses provided tariffCode and keeps origin profile/preset consistent", async () => {
     const mockedAxios = vi.mocked(axios, { partial: false });
     mockedAxios.post.mockImplementation(async (url) => {
