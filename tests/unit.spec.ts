@@ -24,14 +24,14 @@ describe("parseOriginProfile", () => {
 });
 
 describe("tariff selection", () => {
-  it("prefers 234 over 136", () => {
+  it("prefers 136 over 234", () => {
     const result = selectPreferredTariff([{ tariff_code: 136 }, { tariff_code: 234 }]);
-    expect(result.tariffCode).toBe(234);
+    expect(result.tariffCode).toBe(136);
   });
 
-  it("falls back to 136", () => {
-    const result = selectPreferredTariff([{ tariff_code: 136 }]);
-    expect(result.tariffCode).toBe(136);
+  it("falls back to 234", () => {
+    const result = selectPreferredTariff([{ tariff_code: 234 }]);
+    expect(result.tariffCode).toBe(234);
   });
 
   it("throws when neither 234 nor 136 exists", () => {

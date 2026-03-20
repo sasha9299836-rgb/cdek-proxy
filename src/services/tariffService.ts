@@ -35,7 +35,7 @@ export async function getTariffList(config: AppConfig, input: ShippingQuoteInput
   return { payload, response };
 }
 
-export function selectPreferredTariff(raw: any, preferred: number[] = [234, 136]) {
+export function selectPreferredTariff(raw: any, preferred: number[] = [136, 234]) {
   const tariffs = extractTariffs(raw);
 
   for (const code of preferred) {
@@ -49,14 +49,14 @@ export function selectPreferredTariff(raw: any, preferred: number[] = [234, 136]
     }
   }
 
-  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов 234 или 136");
+  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов 136 или 234");
 }
 
 export async function calculateSelectedTariff(config: AppConfig, input: ShippingQuoteInput, profile: OriginProfile) {
   const { payload, response } = await getTariffList(config, input, profile);
   const tariffs = extractTariffs(response);
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
-  const preferredTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [234, 136];
+  const preferredTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [136, 234];
 
   logTariffEvent("quote_tariff_list_received", {
     originProfile: profile.id,
@@ -67,22 +67,35 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
     tariffListPayload: payload,
   });
 
+  let selected: ReturnType<typeof selectPreferredTariff>;
   try {
-    const selected = selectPreferredTariff(response, preferredTariffs);
-    const calculationPayload = {
-      ...payload,
-      tariff_code: selected.tariffCode,
-    };
+    selected = selectPreferredTariff(response, preferredTariffs);
+  } catch (error) {
+    if (error instanceof HttpError && error.errorCode === "TARIFF_NOT_AVAILABLE") {
+      logTariffEvent("quote_tariff_unavailable", {
+        originProfile: profile.id,
+        checkedTariffs: preferredTariffs,
+        availableTariffCodes,
+      });
+    }
+    throw error;
+  }
+  const selectedByRule = selected.tariffCode === 136 ? "preferred_136" : "fallback_234";
+  const calculationPayload = {
+    ...payload,
+    tariff_code: selected.tariffCode,
+  };
 
-    logTariffEvent("quote_tariff_selected_from_list", {
-      originProfile: profile.id,
-      selectedTariffCode: selected.tariffCode,
-      checkedTariffs: preferredTariffs,
-      calculationPayload,
-    });
+  logTariffEvent("quote_tariff_selected_from_list", {
+    originProfile: profile.id,
+    selectedTariffCode: selected.tariffCode,
+    selectedByRule,
+    checkedTariffs: preferredTariffs,
+    calculationPayload,
+  });
 
+  try {
     const calculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", calculationPayload);
-
     return {
       payloadUsed: calculationPayload,
       selectedTariffCode: selected.tariffCode,
@@ -91,76 +104,38 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
       calculation,
     };
   } catch (error) {
-    const fromListUnavailable = error instanceof HttpError && error.errorCode === "TARIFF_NOT_AVAILABLE";
-    if (!fromListUnavailable) {
+    const selectedIndex = preferredTariffs.indexOf(selected.tariffCode);
+    const emergencyFallbackTariffCode = selectedIndex >= 0
+      ? preferredTariffs.slice(selectedIndex + 1).find((code) => availableTariffCodes.includes(code))
+      : undefined;
+
+    if (!(error instanceof HttpError) || error.statusCode !== 422 || !emergencyFallbackTariffCode) {
       throw error;
     }
-  }
 
-  const attemptErrors: Array<{ tariffCode: number; statusCode: number; errorCode: string; details: unknown }> = [];
-
-  for (const tariffCode of preferredTariffs) {
-    const calculationPayload = {
+    const emergencyPayload = {
       ...payload,
-      tariff_code: tariffCode,
+      tariff_code: emergencyFallbackTariffCode,
     };
-    logTariffEvent("quote_tariff_direct_attempt", {
+
+    logTariffEvent("quote_tariff_emergency_fallback", {
       originProfile: profile.id,
-      tariffCode,
-      checkedTariffs: preferredTariffs,
-      calculationPayload,
+      selectedTariffCode: selected.tariffCode,
+      fallbackTariffCode: emergencyFallbackTariffCode,
+      reason: "selected_tariff_calculation_422",
+      primaryErrorCode: error.errorCode,
+      emergencyPayload,
     });
 
-    try {
-      const calculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", calculationPayload);
-      const selectedTariff = tariffs.find((row) => readTariffCode(row) === tariffCode) ?? null;
+    const emergencyCalculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", emergencyPayload);
+    const emergencyTariff = tariffs.find((row) => readTariffCode(row) === emergencyFallbackTariffCode) ?? null;
 
-      logTariffEvent("quote_tariff_direct_selected", {
-        originProfile: profile.id,
-        tariffCode,
-        checkedTariffs: preferredTariffs,
-      });
-
-      return {
-        payloadUsed: calculationPayload,
-        selectedTariffCode: tariffCode,
-        selectedTariff,
-        availableTariffs: tariffs,
-        calculation,
-      };
-    } catch (error) {
-      if (error instanceof HttpError) {
-        if (error.statusCode !== 422) {
-          throw error;
-        }
-        attemptErrors.push({
-          tariffCode,
-          statusCode: error.statusCode,
-          errorCode: error.errorCode,
-          details: error.details ?? null,
-        });
-        logTariffEvent("quote_tariff_direct_failed", {
-          originProfile: profile.id,
-          tariffCode,
-          statusCode: error.statusCode,
-          errorCode: error.errorCode,
-        });
-        continue;
-      }
-      throw error;
-    }
+    return {
+      payloadUsed: emergencyPayload,
+      selectedTariffCode: emergencyFallbackTariffCode,
+      selectedTariff: emergencyTariff,
+      availableTariffs: tariffs,
+      calculation: emergencyCalculation,
+    };
   }
-
-  logTariffEvent("quote_tariff_unavailable", {
-    originProfile: profile.id,
-    preferredTariffs,
-    availableTariffCodes,
-    attemptErrors,
-  });
-
-  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов 234 или 136", {
-    preferredTariffs,
-    availableTariffCodes,
-    attemptErrors,
-  });
 }

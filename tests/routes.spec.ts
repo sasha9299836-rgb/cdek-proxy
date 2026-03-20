@@ -38,7 +38,7 @@ describe("shipping routes", () => {
       ok: true,
       originProfile: "ODN",
       shipmentPoint: "ODN8",
-      selectedTariffCode: 234,
+      selectedTariffCode: 136,
     });
 
     await app.close();
@@ -100,12 +100,60 @@ describe("shipping routes", () => {
     await app.close();
   });
 
-  it("POST /api/shipping/quote falls back to direct tariff check when tarifflist has no 136/234", async () => {
+  it("POST /api/shipping/quote returns TARIFF_NOT_AVAILABLE when tarifflist has no 136/234", async () => {
     const mockedAxios = vi.mocked(axios, { partial: false });
-    mockedAxios.post
-      .mockResolvedValueOnce({ data: { access_token: "token", expires_in: 3600 } })
-      .mockResolvedValueOnce({ data: { tariffs: [{ tariff_code: 999, tariff_name: "Other tariff" }] } })
-      .mockResolvedValueOnce({ data: { delivery_sum: 510, period_min: 3, period_max: 6 } });
+    mockedAxios.post.mockImplementation(async (url) => {
+      const target = String(url);
+      if (target.includes("/oauth/token")) {
+        return { data: { access_token: "token", expires_in: 3600 } } as any;
+      }
+      if (target.includes("/v2/calculator/tarifflist")) {
+        return { data: { tariffs: [{ tariff_code: 999, tariff_name: "Other tariff" }] } } as any;
+      }
+      throw new Error(`Unexpected POST ${target}`);
+    });
+
+    const { buildServer } = await import("../src/server");
+    const app = await buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/shipping/quote",
+      payload: {
+        originProfile: "ODN",
+        packagingPreset: "A3",
+        receiverCityCode: 44,
+        package: { weight: 400, length: 15, width: 10, height: 4 },
+      },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ ok: false, error: "TARIFF_NOT_AVAILABLE" });
+
+    const postCalls = mockedAxios.post.mock.calls.map((call) => String(call[0]));
+    expect(postCalls.some((url) => /\/v2\/calculator\/tariff$/.test(url))).toBe(false);
+    await app.close();
+  });
+
+  it("POST /api/shipping/quote uses emergency fallback 136 -> 234 only when 136 calculation fails", async () => {
+    const mockedAxios = vi.mocked(axios, { partial: false });
+    let tariffAttempts = 0;
+    mockedAxios.post.mockImplementation(async (url) => {
+      const target = String(url);
+      if (target.includes("/oauth/token")) {
+        return { data: { access_token: "token", expires_in: 3600 } } as any;
+      }
+      if (target.includes("/v2/calculator/tarifflist")) {
+        return { data: { tariffs: [{ tariff_code: 136 }, { tariff_code: 234 }] } } as any;
+      }
+      if (target.includes("/v2/calculator/tariff")) {
+        tariffAttempts += 1;
+        if (tariffAttempts === 1) {
+          throw { response: { status: 422, data: { error: "TARIFF_NOT_AVAILABLE" } } };
+        }
+        return { data: { delivery_sum: 620, period_min: 3, period_max: 7 } } as any;
+      }
+      throw new Error(`Unexpected POST ${target}`);
+    });
 
     const { buildServer } = await import("../src/server");
     const app = await buildServer();
@@ -126,8 +174,12 @@ describe("shipping routes", () => {
       selectedTariffCode: 234,
     });
 
-    const postCalls = mockedAxios.post.mock.calls.map((call) => String(call[0]));
-    expect(postCalls.some((url) => url.includes("/v2/calculator/tariff"))).toBe(true);
+    const tariffCalls = mockedAxios.post.mock.calls
+      .filter((call) => /\/v2\/calculator\/tariff$/.test(String(call[0])))
+      .map((call) => call[1] as Record<string, unknown>);
+    expect(tariffCalls).toHaveLength(2);
+    expect(tariffCalls[0]?.tariff_code).toBe(136);
+    expect(tariffCalls[1]?.tariff_code).toBe(234);
 
     await app.close();
   });
