@@ -52,10 +52,20 @@ function normalizeCdekOrderState(payload: Record<string, unknown> | null) {
 }
 
 export async function quoteShipment(config: AppConfig, input: ShippingQuoteInput) {
-  const profile = getOriginProfile(config, input.originProfile ?? "ODN");
+  const originalOriginProfile = input.originProfile ?? "ODN";
+  const forcedOriginProfile = originalOriginProfile === "ODN" ? "MSK" : originalOriginProfile;
+  if (forcedOriginProfile !== originalOriginProfile) {
+    logShipmentProxyEvent("shipping_quote_origin_profile_override_for_test", {
+      originalOriginProfile,
+      forcedOriginProfile,
+      receiverCityCode: input.receiverCityCode,
+    });
+  }
+  const profile = getOriginProfile(config, forcedOriginProfile);
   const result = await calculateSelectedTariff(config, input, profile);
   logShipmentProxyEvent("shipping_quote_completed", {
-    originProfile: profile.id,
+    originProfile: originalOriginProfile,
+    originProfileUsedForCdek: profile.id,
     receiverCityCode: input.receiverCityCode,
     packagingPreset: input.packagingPreset ?? null,
     selectedTariffCode: result.selectedTariffCode,
@@ -63,7 +73,7 @@ export async function quoteShipment(config: AppConfig, input: ShippingQuoteInput
 
   return {
     ok: true,
-    originProfile: profile.id,
+    originProfile: originalOriginProfile,
     shipmentPoint: profile.shipmentPoint,
     selectedTariffCode: result.selectedTariffCode,
     selectedTariff: result.selectedTariff,
