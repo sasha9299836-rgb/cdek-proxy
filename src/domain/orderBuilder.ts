@@ -69,7 +69,6 @@ export function buildTariffPayload(input: ShippingQuoteInput, profile: OriginPro
     currency: 1,
     from_location: {
       code: profile.cityCode,
-      city: profile.cityName,
     },
     to_location: {
       code: toNumber(input.receiverCityCode, 0),
