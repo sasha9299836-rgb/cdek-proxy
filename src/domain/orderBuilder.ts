@@ -65,7 +65,7 @@ export function buildItems(items: ItemInput[] | undefined, packageInput: Package
 
 export function buildTariffPayload(input: ShippingQuoteInput, profile: OriginProfile) {
   const payload = {
-    type: 1,
+    type: 2,
     currency: 1,
     from_location: {
       code: profile.cityCode,
