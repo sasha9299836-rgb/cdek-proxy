@@ -54,6 +54,8 @@ export function selectPreferredTariff(raw: any, preferred: number[] = [136, 234]
 
 export async function calculateSelectedTariff(config: AppConfig, input: ShippingQuoteInput, profile: OriginProfile) {
   const { payload, response } = await getTariffList(config, input, profile);
+  const tarifflistPayload = payload;
+  console.log("CDEK TARIFFLIST PAYLOAD", JSON.stringify(tarifflistPayload, null, 2));
   const tariffs = extractTariffs(response);
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
   const preferredTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [136, 234];
@@ -85,6 +87,8 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
     ...payload,
     tariff_code: selected.tariffCode,
   };
+  const directPayload = calculationPayload;
+  console.log("CDEK DIRECT TARIFF PAYLOAD", JSON.stringify(directPayload, null, 2));
 
   logTariffEvent("quote_tariff_selected_from_list", {
     originProfile: profile.id,
