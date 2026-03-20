@@ -3,7 +3,7 @@ import path from "node:path";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
-export type OriginProfileCode = "ODN" | "YAN";
+export type OriginProfileCode = "ODN" | "YAN" | "MSK";
 export type PackagingPreset = "A2" | "A3" | "A4";
 
 export type AppConfig = {

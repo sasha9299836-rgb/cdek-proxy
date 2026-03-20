@@ -1,4 +1,4 @@
-import type { PackagingPreset } from "../config/env";
+import type { OriginProfileCode, PackagingPreset } from "../config/env";
 import type { OriginProfile } from "./originProfiles";
 import { getPackagingServices } from "./packagingPresets";
 
@@ -17,14 +17,14 @@ export type ItemInput = {
 };
 
 export type ShippingQuoteInput = {
-  originProfile?: "ODN" | "YAN";
+  originProfile?: OriginProfileCode;
   packagingPreset?: PackagingPreset;
   receiverCityCode: number | string;
   package: PackageInput;
 };
 
 export type ShippingCreateInput = {
-  originProfile?: "ODN" | "YAN";
+  originProfile?: OriginProfileCode;
   packagingPreset?: PackagingPreset;
   receiverCityCode?: number | string;
   deliveryPoint: string;

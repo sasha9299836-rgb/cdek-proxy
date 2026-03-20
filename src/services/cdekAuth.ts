@@ -10,7 +10,15 @@ type TokenCacheEntry = {
 const tokenCache: Partial<Record<OriginProfileCode, TokenCacheEntry>> = {};
 
 function getCredentials(config: AppConfig, profile: OriginProfileCode) {
-  if (profile === "ODN") {
+  if (profile === "YAN") {
+    return {
+      clientId: config.yanClientId,
+      clientSecret: config.yanClientSecret,
+    };
+  }
+
+  // Diagnostic compatibility: legacy MSK profile uses ODN credentials.
+  if (profile === "ODN" || profile === "MSK") {
     return {
       clientId: config.odnClientId,
       clientSecret: config.odnClientSecret,
@@ -18,8 +26,8 @@ function getCredentials(config: AppConfig, profile: OriginProfileCode) {
   }
 
   return {
-    clientId: config.yanClientId,
-    clientSecret: config.yanClientSecret,
+    clientId: config.odnClientId,
+    clientSecret: config.odnClientSecret,
   };
 }
 

@@ -82,7 +82,17 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
     throw new HttpError(400, "RECIPIENT_REQUIRED", "recipient.name and recipient.phone are required");
   }
 
-  const profile = getOriginProfile(config, input.originProfile ?? "ODN");
+  const originalOriginProfile = input.originProfile ?? "ODN";
+  const forcedOriginProfile = originalOriginProfile === "ODN" ? "MSK" : originalOriginProfile;
+  if (forcedOriginProfile !== originalOriginProfile) {
+    logShipmentProxyEvent("shipping_origin_profile_override_for_test", {
+      originalOriginProfile,
+      forcedOriginProfile,
+      externalOrderId: input.externalOrderId,
+    });
+  }
+
+  const profile = getOriginProfile(config, forcedOriginProfile);
   logShipmentProxyEvent("shipping_create_start", {
     externalOrderId: input.externalOrderId,
     origin_profile: profile.id,
@@ -105,7 +115,7 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
     const quote = await calculateSelectedTariff(
       config,
       {
-        originProfile: input.originProfile,
+        originProfile: forcedOriginProfile,
         packagingPreset: input.packagingPreset,
         receiverCityCode: input.receiverCityCode,
         package: input.package,

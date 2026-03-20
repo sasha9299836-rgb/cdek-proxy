@@ -20,7 +20,7 @@ export function parseOriginProfile(value: unknown, fallback?: OriginProfileCode)
     throw new HttpError(400, "INVALID_ORIGIN_PROFILE", "Неизвестный профиль отправки");
   }
 
-  if (value === "ODN" || value === "YAN") {
+  if (value === "ODN" || value === "YAN" || value === "MSK") {
     return value;
   }
 
@@ -34,6 +34,19 @@ export function getOriginProfile(config: AppConfig, code: OriginProfileCode): Or
       shipmentPoint: config.odnShipmentPoint,
       cityCode: config.odnCityCode,
       cityName: "Одинцово",
+      preferredTariffs: [234, 136],
+      senderName: config.odnSenderName,
+      senderPhone: config.odnSenderPhone,
+      sellerName: config.sellerName,
+    };
+  }
+
+  if (code === "MSK") {
+    return {
+      id: "MSK",
+      shipmentPoint: config.odnShipmentPoint,
+      cityCode: config.odnCityCode,
+      cityName: "Москва",
       preferredTariffs: [234, 136],
       senderName: config.odnSenderName,
       senderPhone: config.odnSenderPhone,
