@@ -17,14 +17,22 @@ function logTariffEvent(event: string, data: Record<string, unknown>) {
 
 function extractTariffs(raw: any): any[] {
   if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.tariff_codes)) return raw.tariff_codes;
+  if (Array.isArray(raw?.tariffCodes)) return raw.tariffCodes;
   if (Array.isArray(raw?.tariffs)) return raw.tariffs;
+  if (Array.isArray(raw?.result?.tariff_codes)) return raw.result.tariff_codes;
+  if (Array.isArray(raw?.result?.tariffs)) return raw.result.tariffs;
+  if (Array.isArray(raw?.response?.tariff_codes)) return raw.response.tariff_codes;
+  if (Array.isArray(raw?.response?.tariffs)) return raw.response.tariffs;
+  if (Array.isArray(raw?.data?.tariff_codes)) return raw.data.tariff_codes;
+  if (Array.isArray(raw?.data?.tariffs)) return raw.data.tariffs;
   if (Array.isArray(raw?.data)) return raw.data;
   if (Array.isArray(raw?.items)) return raw.items;
   return [];
 }
 
 function readTariffCode(row: any): number | null {
-  const value = row?.tariff_code ?? row?.code ?? row?.tariffCode;
+  const value = row?.tariff_code ?? row?.code ?? row?.tariffCode ?? row?.tariff?.tariff_code;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -49,7 +57,7 @@ export function selectPreferredTariff(raw: any, preferred: number[] = [136, 234]
     }
   }
 
-  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов 136 или 234");
+  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов");
 }
 
 export async function calculateSelectedTariff(config: AppConfig, input: ShippingQuoteInput, profile: OriginProfile) {
@@ -60,31 +68,31 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
   const tariffs = extractTariffs(response);
   console.log("CDEK TARIFFLIST PARSED TARIFFS", JSON.stringify(tariffs, null, 2));
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
-  const preferredTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [136, 234];
+  const checkedTariffs = availableTariffCodes;
 
   logTariffEvent("quote_tariff_list_received", {
     originProfile: profile.id,
     receiverCityCode: input.receiverCityCode,
     packagingPreset: input.packagingPreset ?? null,
-    preferredTariffs,
+    checkedTariffs,
     availableTariffCodes,
     tariffListPayload: payload,
   });
 
   let selected: ReturnType<typeof selectPreferredTariff>;
   try {
-    selected = selectPreferredTariff(response, preferredTariffs);
+    selected = selectPreferredTariff(response, checkedTariffs);
   } catch (error) {
     if (error instanceof HttpError && error.errorCode === "TARIFF_NOT_AVAILABLE") {
       logTariffEvent("quote_tariff_unavailable", {
         originProfile: profile.id,
-        checkedTariffs: preferredTariffs,
+        checkedTariffs,
         availableTariffCodes,
       });
     }
     throw error;
   }
-  const selectedByRule = selected.tariffCode === 136 ? "preferred_136" : "fallback_234";
+  const selectedByRule = "first_available_from_tarifflist";
   const calculationPayload = {
     ...payload,
     tariff_code: selected.tariffCode,
@@ -96,7 +104,7 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
     originProfile: profile.id,
     selectedTariffCode: selected.tariffCode,
     selectedByRule,
-    checkedTariffs: preferredTariffs,
+    checkedTariffs,
     calculationPayload,
   });
 
