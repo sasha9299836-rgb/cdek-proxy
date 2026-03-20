@@ -55,6 +55,11 @@ export async function cdekPost<T>(config: AppConfig, profile: OriginProfileCode,
       timeout: 20000,
     });
 
+    if (path === "/v2/calculator/tarifflist") {
+      console.log("CDEK TARIFFLIST RAW STATUS", response.status);
+      console.log("CDEK TARIFFLIST RAW BODY", JSON.stringify(response.data ?? null, null, 2));
+    }
+
     return response.data;
   } catch (error: any) {
     const responseStatus = error?.response?.status || 502;

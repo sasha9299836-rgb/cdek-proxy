@@ -56,7 +56,9 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
   const { payload, response } = await getTariffList(config, input, profile);
   const tarifflistPayload = payload;
   console.log("CDEK TARIFFLIST PAYLOAD", JSON.stringify(tarifflistPayload, null, 2));
+  console.log("CDEK TARIFFLIST PARSED", JSON.stringify(response ?? null, null, 2));
   const tariffs = extractTariffs(response);
+  console.log("CDEK TARIFFLIST PARSED TARIFFS", JSON.stringify(tariffs, null, 2));
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
   const preferredTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [136, 234];
 
