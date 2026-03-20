@@ -21,6 +21,16 @@ function assertNoForbiddenFields(
   }
 }
 
+function logShippingCreateDebug(event: string, data: Record<string, unknown>) {
+  console.info(
+    JSON.stringify({
+      scope: "cdek-proxy",
+      event,
+      ...data,
+    }),
+  );
+}
+
 function readOptionalTariffCode(body: Record<string, unknown>): number | undefined {
   const raw = body.tariffCode ?? body.tariff_code;
   if (raw == null || raw === "") {
@@ -64,6 +74,10 @@ export function validateQuoteBody(body: unknown): ShippingQuoteInput {
 }
 
 export function validateCreateBody(body: unknown): ShippingCreateInput {
+  logShippingCreateDebug("shipping_create_raw_body", {
+    body,
+  });
+
   if (!isObject(body)) {
     throw new HttpError(400, "INVALID_BODY", "Invalid JSON body");
   }
@@ -95,7 +109,7 @@ export function validateCreateBody(body: unknown): ShippingCreateInput {
     throw new HttpError(400, "PACKAGE_REQUIRED", "package is required");
   }
 
-  return {
+  const parsedInput: ShippingCreateInput = {
     originProfile: parseOriginProfile(body.originProfile, "ODN"),
     packagingPreset: body.packagingPreset as ShippingCreateInput["packagingPreset"],
     receiverCityCode: body.receiverCityCode as string | number | undefined,
@@ -107,6 +121,15 @@ export function validateCreateBody(body: unknown): ShippingCreateInput {
     package: body.package as ShippingCreateInput["package"],
     items: Array.isArray(body.items) ? (body.items as ShippingCreateInput["items"]) : undefined,
   };
+
+  logShippingCreateDebug("shipping_create_parsed_input", {
+    parsedInput,
+    tariffCode: parsedInput.tariffCode ?? null,
+    rawTariffCode: body.tariffCode ?? null,
+    rawTariffCodeSnake: body.tariff_code ?? null,
+  });
+
+  return parsedInput;
 }
 
 export async function quoteHandler(request: FastifyRequest) {
