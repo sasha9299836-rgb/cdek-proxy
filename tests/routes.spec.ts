@@ -134,9 +134,8 @@ describe("shipping routes", () => {
     await app.close();
   });
 
-  it("POST /api/shipping/quote uses emergency fallback 136 -> 234 only when 136 calculation fails", async () => {
+  it("POST /api/shipping/quote does not bypass tariff-list choice when selected tariff fails", async () => {
     const mockedAxios = vi.mocked(axios, { partial: false });
-    let tariffAttempts = 0;
     mockedAxios.post.mockImplementation(async (url) => {
       const target = String(url);
       if (target.includes("/oauth/token")) {
@@ -146,11 +145,7 @@ describe("shipping routes", () => {
         return { data: { tariffs: [{ tariff_code: 136 }, { tariff_code: 234 }] } } as any;
       }
       if (target.includes("/v2/calculator/tariff")) {
-        tariffAttempts += 1;
-        if (tariffAttempts === 1) {
-          throw { response: { status: 422, data: { error: "TARIFF_NOT_AVAILABLE" } } };
-        }
-        return { data: { delivery_sum: 620, period_min: 3, period_max: 7 } } as any;
+        throw { response: { status: 422, data: { error: "TARIFF_NOT_AVAILABLE" } } };
       }
       throw new Error(`Unexpected POST ${target}`);
     });
@@ -168,18 +163,14 @@ describe("shipping routes", () => {
       },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
-      ok: true,
-      selectedTariffCode: 234,
-    });
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ ok: false, error: "CDEK_REQUEST_FAILED" });
 
     const tariffCalls = mockedAxios.post.mock.calls
       .filter((call) => /\/v2\/calculator\/tariff$/.test(String(call[0])))
       .map((call) => call[1] as Record<string, unknown>);
-    expect(tariffCalls).toHaveLength(2);
+    expect(tariffCalls).toHaveLength(1);
     expect(tariffCalls[0]?.tariff_code).toBe(136);
-    expect(tariffCalls[1]?.tariff_code).toBe(234);
 
     await app.close();
   });

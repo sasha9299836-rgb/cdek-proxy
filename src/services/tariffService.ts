@@ -94,48 +94,12 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
     calculationPayload,
   });
 
-  try {
-    const calculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", calculationPayload);
-    return {
-      payloadUsed: calculationPayload,
-      selectedTariffCode: selected.tariffCode,
-      selectedTariff: selected.tariff,
-      availableTariffs: selected.allTariffs,
-      calculation,
-    };
-  } catch (error) {
-    const selectedIndex = preferredTariffs.indexOf(selected.tariffCode);
-    const emergencyFallbackTariffCode = selectedIndex >= 0
-      ? preferredTariffs.slice(selectedIndex + 1).find((code) => availableTariffCodes.includes(code))
-      : undefined;
-
-    if (!(error instanceof HttpError) || error.statusCode !== 422 || !emergencyFallbackTariffCode) {
-      throw error;
-    }
-
-    const emergencyPayload = {
-      ...payload,
-      tariff_code: emergencyFallbackTariffCode,
-    };
-
-    logTariffEvent("quote_tariff_emergency_fallback", {
-      originProfile: profile.id,
-      selectedTariffCode: selected.tariffCode,
-      fallbackTariffCode: emergencyFallbackTariffCode,
-      reason: "selected_tariff_calculation_422",
-      primaryErrorCode: error.errorCode,
-      emergencyPayload,
-    });
-
-    const emergencyCalculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", emergencyPayload);
-    const emergencyTariff = tariffs.find((row) => readTariffCode(row) === emergencyFallbackTariffCode) ?? null;
-
-    return {
-      payloadUsed: emergencyPayload,
-      selectedTariffCode: emergencyFallbackTariffCode,
-      selectedTariff: emergencyTariff,
-      availableTariffs: tariffs,
-      calculation: emergencyCalculation,
-    };
-  }
+  const calculation = await cdekPost<any>(config, profile.id, "/v2/calculator/tariff", calculationPayload);
+  return {
+    payloadUsed: calculationPayload,
+    selectedTariffCode: selected.tariffCode,
+    selectedTariff: selected.tariff,
+    availableTariffs: selected.allTariffs,
+    calculation,
+  };
 }
