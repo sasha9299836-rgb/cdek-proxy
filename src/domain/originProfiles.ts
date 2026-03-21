@@ -46,7 +46,7 @@ export function getOriginProfile(config: AppConfig, code: OriginProfileCode): Or
       id: "MSK",
       shipmentPoint: config.odnShipmentPoint,
       cityCode: config.odnCityCode,
-      cityName: "Москва",
+      cityName: "Одинцово",
       preferredTariffs: [136, 234],
       senderName: config.odnSenderName,
       senderPhone: config.odnSenderPhone,

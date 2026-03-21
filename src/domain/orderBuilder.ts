@@ -65,10 +65,11 @@ export function buildItems(items: ItemInput[] | undefined, packageInput: Package
 
 export function buildTariffPayload(input: ShippingQuoteInput, profile: OriginProfile) {
   const payload = {
-    type: 2,
+    type: 1,
     currency: 1,
     from_location: {
       code: profile.cityCode,
+      city: profile.cityName,
     },
     to_location: {
       code: toNumber(input.receiverCityCode, 0),
