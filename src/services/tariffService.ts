@@ -57,7 +57,7 @@ export function selectPreferredTariff(raw: any, preferred: number[] = [136, 234]
     }
   }
 
-  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов");
+  throw new HttpError(422, "TARIFF_NOT_AVAILABLE", "Нет доступных тарифов 136 или 234");
 }
 
 export async function calculateSelectedTariff(config: AppConfig, input: ShippingQuoteInput, profile: OriginProfile) {
@@ -70,7 +70,7 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
   console.log("CDEK TARIFFLIST PARSED TARIFFS", JSON.stringify(tariffs, null, 2));
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
   console.log("PARSED TARIFF CODES:", JSON.stringify(availableTariffCodes));
-  const checkedTariffs = availableTariffCodes;
+  const checkedTariffs = profile.preferredTariffs?.length ? profile.preferredTariffs : [136, 234];
 
   logTariffEvent("quote_tariff_list_received", {
     originProfile: profile.id,
@@ -94,7 +94,7 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
     }
     throw error;
   }
-  const selectedByRule = "first_available_from_tarifflist";
+  const selectedByRule = selected.tariffCode === 136 ? "preferred_136" : "fallback_234";
   const calculationPayload = {
     ...payload,
     tariff_code: selected.tariffCode,
