@@ -65,9 +65,11 @@ export async function calculateSelectedTariff(config: AppConfig, input: Shipping
   const tarifflistPayload = payload;
   console.log("CDEK TARIFFLIST PAYLOAD", JSON.stringify(tarifflistPayload, null, 2));
   console.log("CDEK TARIFFLIST PARSED", JSON.stringify(response ?? null, null, 2));
+  console.log("RAW HAS 136:", JSON.stringify(response ?? null).includes("136"));
   const tariffs = extractTariffs(response);
   console.log("CDEK TARIFFLIST PARSED TARIFFS", JSON.stringify(tariffs, null, 2));
   const availableTariffCodes = tariffs.map((row) => readTariffCode(row)).filter((code): code is number => code !== null);
+  console.log("PARSED TARIFF CODES:", JSON.stringify(availableTariffCodes));
   const checkedTariffs = availableTariffCodes;
 
   logTariffEvent("quote_tariff_list_received", {
