@@ -145,6 +145,7 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
   }
 
   const payload = buildCreateOrderPayload(input, profile, tariffCode);
+  console.log("CDEK CREATE ORDER PAYLOAD", JSON.stringify(payload, null, 2));
   const response = await cdekPost<any>(config, profile.id, "/v2/orders", payload);
   const normalized = normalizeCdekOrderState(response);
   const entity = normalized.entity;
