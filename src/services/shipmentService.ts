@@ -37,12 +37,7 @@ function normalizeCdekOrderState(payload: Record<string, unknown> | null) {
               ? latestStatus.name
               : null;
 
-  const cdekNumber =
-    typeof entity?.cdek_number === "string"
-      ? entity.cdek_number
-      : typeof entity?.track === "string"
-        ? entity.track
-        : null;
+  const cdekNumber = normalizeTrackValue(entity?.cdek_number) ?? normalizeTrackValue(entity?.track);
 
   return {
     entity,
@@ -186,3 +181,13 @@ export async function getShipmentStatus(config: AppConfig, uuid: string, originP
     status: response,
   };
 }
+  const normalizeTrackValue = (value: unknown): string | null => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed.length ? trimmed : null;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+    return null;
+  };
