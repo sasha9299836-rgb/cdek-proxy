@@ -16,6 +16,37 @@ function logShipmentProxyEvent(event: string, data: Record<string, unknown>) {
   );
 }
 
+function getObjectKeys(value: unknown): string[] {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? Object.keys(value as Record<string, unknown>)
+    : [];
+}
+
+function buildCdekRawOrderDebug(payload: Record<string, unknown> | null) {
+  const entity = (payload?.entity ?? payload) as Record<string, unknown> | null;
+  const requests = Array.isArray(entity?.requests) ? entity.requests : [];
+  const statuses = Array.isArray(entity?.statuses) ? entity.statuses : [];
+  const latestStatus = statuses.length ? statuses[statuses.length - 1] as Record<string, unknown> : null;
+
+  return {
+    topLevelKeys: getObjectKeys(payload),
+    entityKeys: getObjectKeys(entity),
+    requestsCount: requests.length,
+    statusesCount: statuses.length,
+    uuid: typeof entity?.uuid === "string" ? entity.uuid : null,
+    order_uuid: typeof entity?.order_uuid === "string" ? entity.order_uuid : null,
+    number: typeof entity?.number === "string" ? entity.number : null,
+    cdek_number: entity?.cdek_number ?? null,
+    track: entity?.track ?? null,
+    tracking_number: entity?.tracking_number ?? null,
+    status: entity?.status ?? null,
+    latestStatusCode: latestStatus?.code ?? null,
+    latestStatusName: latestStatus?.name ?? null,
+    latestStatusDateTime: latestStatus?.date_time ?? null,
+    rawEntity: entity,
+  };
+}
+
 function normalizeCdekOrderState(payload: Record<string, unknown> | null) {
   const entity = (payload?.entity ?? payload) as Record<string, unknown> | null;
   const statuses = Array.isArray(entity?.statuses) ? entity.statuses : [];
@@ -144,6 +175,11 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
   const response = await cdekPost<any>(config, profile.id, "/v2/orders", payload);
   const normalized = normalizeCdekOrderState(response);
   const entity = normalized.entity;
+  logShipmentProxyEvent("shipping_create_raw_response", {
+    externalOrderId: input.externalOrderId,
+    originProfile: profile.id,
+    raw: buildCdekRawOrderDebug(response as Record<string, unknown> | null),
+  });
   logShipmentProxyEvent("shipping_create_completed", {
     externalOrderId: input.externalOrderId,
     originProfile: profile.id,
@@ -165,10 +201,27 @@ export async function createShipment(config: AppConfig, input: ShippingCreateInp
 }
 
 export async function getShipmentStatus(config: AppConfig, uuid: string, originProfile: OriginProfileCode) {
-  const response = await cdekGet<any>(config, originProfile, `/v2/orders/${encodeURIComponent(uuid)}`);
+  const originalOriginProfile = originProfile;
+  const forcedOriginProfile = originalOriginProfile === "ODN" ? "MSK" : originalOriginProfile;
+  if (forcedOriginProfile !== originalOriginProfile) {
+    logShipmentProxyEvent("shipping_status_origin_profile_override_for_test", {
+      originalOriginProfile,
+      forcedOriginProfile,
+      uuid,
+    });
+  }
+
+  const response = await cdekGet<any>(config, forcedOriginProfile, `/v2/orders/${encodeURIComponent(uuid)}`);
   const normalized = normalizeCdekOrderState(response);
+  logShipmentProxyEvent("shipping_status_raw_response", {
+    originProfileRequested: originalOriginProfile,
+    originProfileUsedForCdek: forcedOriginProfile,
+    uuid,
+    raw: buildCdekRawOrderDebug(response as Record<string, unknown> | null),
+  });
   logShipmentProxyEvent("shipping_status_completed", {
-    originProfile,
+    originProfile: originalOriginProfile,
+    originProfileUsedForCdek: forcedOriginProfile,
     cdekUuid: uuid,
     cdekStatus: normalized.trackingStatus,
     cdekNumber: normalized.cdekNumber,
@@ -176,7 +229,7 @@ export async function getShipmentStatus(config: AppConfig, uuid: string, originP
 
   return {
     ok: true,
-    originProfile,
+    originProfile: originalOriginProfile,
     uuid,
     status: response,
   };
