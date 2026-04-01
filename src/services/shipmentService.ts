@@ -47,6 +47,17 @@ function buildCdekRawOrderDebug(payload: Record<string, unknown> | null) {
   };
 }
 
+function normalizeTrackValue(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
 function normalizeCdekOrderState(payload: Record<string, unknown> | null) {
   const entity = (payload?.entity ?? payload) as Record<string, unknown> | null;
   const statuses = Array.isArray(entity?.statuses) ? entity.statuses : [];
@@ -234,13 +245,3 @@ export async function getShipmentStatus(config: AppConfig, uuid: string, originP
     status: response,
   };
 }
-  const normalizeTrackValue = (value: unknown): string | null => {
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      return trimmed.length ? trimmed : null;
-    }
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return String(value);
-    }
-    return null;
-  };
