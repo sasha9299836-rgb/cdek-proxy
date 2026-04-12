@@ -21,7 +21,14 @@ export async function buildServer() {
     reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   });
 
-  app.options("*", async (_request, reply) => {
+  app.options("*", async (request, reply) => {
+    console.info(JSON.stringify({
+      scope: "cdek-proxy",
+      event: "cors_preflight",
+      method: request.method,
+      url: request.url,
+      req_headers: request.headers["access-control-request-headers"] ?? null,
+    }));
     reply.code(204).send();
   });
 

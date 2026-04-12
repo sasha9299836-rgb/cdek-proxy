@@ -26,6 +26,10 @@ export function readAdminTokenFromHeaders(headers: Record<string, unknown>): str
 }
 
 export async function requireValidAdminSession(adminToken: string): Promise<void> {
+  console.info(JSON.stringify({
+    scope: "admin-media",
+    event: "admin_session_validate_entered",
+  }));
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .from("tg_admin_sessions")
@@ -34,16 +38,34 @@ export async function requireValidAdminSession(adminToken: string): Promise<void
     .maybeSingle();
 
   if (error) {
+    console.error(JSON.stringify({
+      scope: "admin-media",
+      event: "admin_session_validate_failed_query",
+      message: error.message,
+    }));
     throw new HttpError(500, "SESSION_CHECK_FAILED", "Failed to validate admin session", {
       message: error.message,
     });
   }
   if (!data) {
+    console.warn(JSON.stringify({
+      scope: "admin-media",
+      event: "admin_session_validate_not_found",
+    }));
     throw new HttpError(401, "UNAUTHORIZED", "Admin session not found");
   }
 
   const expiresAt = String((data as { expires_at?: string | null }).expires_at ?? "").trim();
   if (!expiresAt || new Date(expiresAt).getTime() <= Date.now()) {
+    console.warn(JSON.stringify({
+      scope: "admin-media",
+      event: "admin_session_validate_expired",
+      expires_at: expiresAt || null,
+    }));
     throw new HttpError(401, "UNAUTHORIZED", "Admin session expired");
   }
+  console.info(JSON.stringify({
+    scope: "admin-media",
+    event: "admin_session_validate_ok",
+  }));
 }

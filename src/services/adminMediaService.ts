@@ -31,6 +31,12 @@ function getS3Client(): S3Client {
   if (!env.ycAccessKey || !env.ycSecretKey || !env.ycBucket) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "Yandex storage env is not configured");
   }
+  console.info(JSON.stringify({
+    scope: "admin-media",
+    event: "storage_env_validated",
+    has_bucket: Boolean(env.ycBucket),
+    region: env.ycRegion || "ru-central1",
+  }));
   if (!s3Client) {
     s3Client = new S3Client({
       region: env.ycRegion || "ru-central1",
@@ -129,6 +135,15 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
   const bucket = env.ycBucket;
   const basePrefix = itemId ? `${itemId}` : `no-item/${postId}`;
   const key = `${basePrefix}/${photoNo}.${ext}`;
+  console.info(JSON.stringify({
+    scope: "admin-media",
+    event: "main_upload_key_resolved",
+    post_id: postId || null,
+    item_id: itemId,
+    photo_no: photoNo,
+    key,
+    mime,
+  }));
 
   if (await objectExists(bucket, key)) {
     throw new HttpError(409, "ALREADY_EXISTS", "Main photo with this photo_no already exists");
