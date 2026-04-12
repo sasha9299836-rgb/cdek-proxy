@@ -22,6 +22,13 @@ export type AppConfig = {
   yanSenderName: string;
   yanSenderPhone: string;
   sellerName: string;
+  supabaseUrl: string;
+  supabaseServiceRoleKey: string;
+  ycAccessKey: string;
+  ycSecretKey: string;
+  ycBucket: string;
+  ycRegion: string;
+  adminMainUploadMaxBytes: number;
 };
 
 function readRequired(name: string): string {
@@ -46,6 +53,10 @@ function readNumber(name: string, fallback: number): number {
   return parsed;
 }
 
+function readOptional(name: string): string {
+  return process.env[name]?.trim() || "";
+}
+
 export const env: AppConfig = {
   port: readNumber("PORT", 8787),
   cdekBaseUrl: (process.env.CDEK_BASE_URL?.trim() || "https://api.cdek.ru").replace(/\/$/, ""),
@@ -62,4 +73,11 @@ export const env: AppConfig = {
   yanSenderName: readRequired("CDEK_YAN_SENDER_NAME"),
   yanSenderPhone: readRequired("CDEK_YAN_SENDER_PHONE"),
   sellerName: process.env.CDEK_SELLER_NAME?.trim() || "AES ISLAND",
+  supabaseUrl: readOptional("SUPABASE_URL"),
+  supabaseServiceRoleKey: readOptional("SUPABASE_SERVICE_ROLE_KEY"),
+  ycAccessKey: readOptional("YC_ACCESS_KEY"),
+  ycSecretKey: readOptional("YC_SECRET_KEY"),
+  ycBucket: readOptional("YC_BUCKET"),
+  ycRegion: readOptional("YC_REGION") || "ru-central1",
+  adminMainUploadMaxBytes: readNumber("ADMIN_MAIN_UPLOAD_MAX_BYTES", 10 * 1024 * 1024),
 };
