@@ -7,6 +7,7 @@ import { registerPvzRoutes } from "./routes/pvz";
 import { registerShippingRoutes } from "./routes/shipping";
 import { registerAdminMediaRoutes } from "./routes/adminMedia";
 import { registerAdminDraftPostRoutes } from "./routes/adminDraftPost";
+import { registerAdminPostPhotoRoutes } from "./routes/adminPostPhoto";
 import { registerErrorHandler } from "./utils/errorHandler";
 
 export async function buildServer() {
@@ -48,6 +49,7 @@ export async function buildServer() {
   await registerShippingRoutes(app);
   await registerAdminMediaRoutes(app);
   await registerAdminDraftPostRoutes(app);
+  await registerAdminPostPhotoRoutes(app);
 
   return app;
 }
