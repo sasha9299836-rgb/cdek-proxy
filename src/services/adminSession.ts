@@ -18,7 +18,11 @@ function getSupabaseAdminClient(): SupabaseClient {
 }
 
 export function readAdminTokenFromHeaders(headers: Record<string, unknown>): string {
-  const token = String(headers["x-admin-token"] ?? "").trim();
+  const authorization = String(headers.authorization ?? "").trim();
+  if (!authorization.toLowerCase().startsWith("bearer ")) {
+    throw new HttpError(401, "UNAUTHORIZED", "Bearer token is required");
+  }
+  const token = authorization.slice(7).trim();
   if (!token) {
     throw new HttpError(401, "UNAUTHORIZED", "Admin token is required");
   }

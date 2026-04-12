@@ -17,7 +17,7 @@ export async function buildServer() {
 
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Access-Control-Allow-Origin", "*");
-    reply.header("Access-Control-Allow-Headers", "authorization, x-client-info, apikey, content-type, x-admin-token");
+    reply.header("Access-Control-Allow-Headers", "authorization, Authorization, x-client-info, apikey, content-type");
     reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   });
 
