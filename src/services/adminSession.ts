@@ -4,7 +4,7 @@ import { HttpError } from "../utils/httpError";
 
 let supabaseAdminClient: SupabaseClient | null = null;
 
-function getSupabaseAdminClient(): SupabaseClient {
+export function getSupabaseAdminClient(): SupabaseClient {
   if (!env.supabaseUrl || !env.supabaseServiceRoleKey) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "Supabase admin env is not configured");
   }
