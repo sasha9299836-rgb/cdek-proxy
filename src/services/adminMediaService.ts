@@ -25,6 +25,7 @@ export type UploadMainPhotoResult = {
   key: string;
   url: string;
   photo_no: number;
+  already_exists?: boolean;
 };
 
 function getS3Client(): S3Client {
@@ -146,6 +147,24 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
   }));
 
   if (await objectExists(bucket, key)) {
+    if (itemId != null) {
+      const url = `https://${bucket}.storage.yandexcloud.net/${key}`;
+      console.info(JSON.stringify({
+        scope: "admin-media",
+        event: "main_upload_already_exists_handled",
+        post_id: postId || null,
+        photo_no: photoNo,
+        item_id: itemId,
+        key,
+      }));
+      return {
+        ok: true,
+        already_exists: true,
+        key,
+        url,
+        photo_no: photoNo,
+      };
+    }
     throw new HttpError(409, "ALREADY_EXISTS", "Main photo with this photo_no already exists");
   }
 
