@@ -18,6 +18,7 @@ type UploadMainPhotoInput = {
   postId: string;
   itemId: number | null;
   photoNo: number;
+  kind?: "main" | "measurement";
 };
 
 export type UploadMainPhotoResult = {
@@ -124,7 +125,11 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
   const photoNo = parsePhotoNo(input.photoNo);
   const itemId = parseItemId(input.itemId);
   const postId = parsePostId(input.postId);
-  if (itemId == null && !isSafePostId(postId)) {
+  const kind = input.kind === "measurement" ? "measurement" : "main";
+  if (kind === "measurement" && !isSafePostId(postId)) {
+    throw new HttpError(400, "BAD_PAYLOAD", "post_id is required for measurement uploads");
+  }
+  if (kind === "main" && itemId == null && !isSafePostId(postId)) {
     throw new HttpError(400, "BAD_PAYLOAD", "post_id is required for no-item uploads");
   }
 
@@ -134,7 +139,11 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
   const { buffer, size } = await streamToBuffer(input.file.file, maxBytes);
 
   const bucket = env.ycBucket;
-  const basePrefix = itemId ? `${itemId}` : `no-item/${postId}`;
+  const basePrefix = kind === "measurement"
+    ? `measurements/${postId}`
+    : itemId
+    ? `${itemId}`
+    : `no-item/${postId}`;
   const key = `${basePrefix}/${photoNo}.${ext}`;
   console.info(JSON.stringify({
     scope: "admin-media",
@@ -144,10 +153,11 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
     photo_no: photoNo,
     key,
     mime,
+    kind,
   }));
 
   if (await objectExists(bucket, key)) {
-    if (itemId != null) {
+    if (kind === "measurement" || itemId != null) {
       const url = `https://${bucket}.storage.yandexcloud.net/${key}`;
       console.info(JSON.stringify({
         scope: "admin-media",
@@ -156,6 +166,7 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
         photo_no: photoNo,
         item_id: itemId,
         key,
+        kind,
       }));
       return {
         ok: true,
@@ -192,6 +203,7 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
     mime,
     size,
     key,
+    kind,
   }));
 
   return {

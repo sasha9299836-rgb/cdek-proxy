@@ -4,3 +4,6 @@ dist/
 .env.example
 build
 logs
+# Local agent instructions
+AGENTS.md
+

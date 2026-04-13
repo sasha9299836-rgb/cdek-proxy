@@ -22,6 +22,7 @@ type DraftWritePayload = {
   condition: string;
   has_defects: boolean;
   defects_text: string | null;
+  measurements_text: string | null;
   status: "draft" | "scheduled" | "published" | "archived";
   scheduled_at: string | null;
   published_at: string | null;
@@ -60,6 +61,7 @@ function normalizePayload(raw: unknown): DraftWritePayload | null {
   const nalichieId = row.nalichie_id == null ? null : Number(row.nalichie_id);
   const hasDefects = Boolean(row.has_defects);
   const defectsText = hasDefects ? normalizeOptionalString(row.defects_text) : null;
+  const measurementsText = normalizeOptionalString(row.measurements_text);
 
   if (!postType || !origin || !packaging || !status) return null;
   if (!title || !description || !condition || !Number.isFinite(price) || price <= 0) return null;
@@ -80,6 +82,7 @@ function normalizePayload(raw: unknown): DraftWritePayload | null {
     condition,
     has_defects: hasDefects,
     defects_text: defectsText,
+    measurements_text: measurementsText,
     status,
     scheduled_at: normalizeOptionalString(row.scheduled_at),
     published_at: normalizeOptionalString(row.published_at),

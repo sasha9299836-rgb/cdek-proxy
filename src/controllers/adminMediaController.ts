@@ -43,12 +43,14 @@ export async function uploadMainPhotoHandler(request: FastifyRequest) {
   const postId = readFieldValue(fields, "post_id");
   const photoNoRaw = readFieldValue(fields, "photo_no");
   const itemIdRaw = readFieldValue(fields, "item_id");
+  const kindRaw = readFieldValue(fields, "kind");
   console.info(JSON.stringify({
     scope: "admin-media",
     event: "main_upload_multipart_parsed",
     post_id: postId || null,
     photo_no_raw: photoNoRaw || null,
     item_id_raw: itemIdRaw || null,
+    kind: kindRaw || "main",
     mime: filePart.mimetype,
     filename: filePart.filename,
   }));
@@ -63,6 +65,7 @@ export async function uploadMainPhotoHandler(request: FastifyRequest) {
       postId,
       photoNo: Number(photoNoRaw),
       itemId: itemIdRaw ? Number(itemIdRaw) : null,
+      kind: kindRaw === "measurement" ? "measurement" : "main",
     });
     console.info(JSON.stringify({
       scope: "admin-media",

@@ -8,6 +8,7 @@ import { registerShippingRoutes } from "./routes/shipping";
 import { registerAdminMediaRoutes } from "./routes/adminMedia";
 import { registerAdminDraftPostRoutes } from "./routes/adminDraftPost";
 import { registerAdminPostPhotoRoutes } from "./routes/adminPostPhoto";
+import { registerAdminMeasurementPhotoRoutes } from "./routes/adminMeasurementPhoto";
 import { registerAdminPostPublishRoutes } from "./routes/adminPostPublish";
 import { registerErrorHandler } from "./utils/errorHandler";
 
@@ -51,6 +52,7 @@ export async function buildServer() {
   await registerAdminMediaRoutes(app);
   await registerAdminDraftPostRoutes(app);
   await registerAdminPostPhotoRoutes(app);
+  await registerAdminMeasurementPhotoRoutes(app);
   await registerAdminPostPublishRoutes(app);
 
   return app;
