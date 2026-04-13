@@ -11,6 +11,7 @@ import { registerAdminPostPhotoRoutes } from "./routes/adminPostPhoto";
 import { registerAdminMeasurementPhotoRoutes } from "./routes/adminMeasurementPhoto";
 import { registerAdminPostPublishRoutes } from "./routes/adminPostPublish";
 import { registerAdminDefectPhotoRoutes } from "./routes/adminDefectPhoto";
+import { registerAdminDefectVideoPresignRoutes } from "./routes/adminDefectVideoPresign";
 import { registerErrorHandler } from "./utils/errorHandler";
 
 export async function buildServer() {
@@ -56,6 +57,7 @@ export async function buildServer() {
   await registerAdminMeasurementPhotoRoutes(app);
   await registerAdminPostPublishRoutes(app);
   await registerAdminDefectPhotoRoutes(app);
+  await registerAdminDefectVideoPresignRoutes(app);
 
   return app;
 }
