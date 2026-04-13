@@ -1,4 +1,4 @@
-import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { MultipartFile } from "@fastify/multipart";
 import { env } from "../config/env";
 import { HttpError } from "../utils/httpError";
@@ -102,24 +102,6 @@ async function streamToBuffer(stream: NodeJS.ReadableStream, maxBytes: number): 
   return { buffer: Buffer.concat(chunks), size: total };
 }
 
-async function objectExists(bucket: string, key: string): Promise<boolean> {
-  const client = getS3Client();
-  try {
-    await client.send(new HeadObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    }));
-    return true;
-  } catch (error) {
-    const status = (error as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode;
-    if (status === 404) return false;
-    const name = String((error as { name?: unknown })?.name ?? "");
-    if (name === "NotFound" || name === "NoSuchKey") return false;
-    throw new HttpError(502, "STORAGE_CHECK_FAILED", "Failed to check existing object", {
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
 
 export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Promise<UploadMainPhotoResult> {
   const photoNo = parsePhotoNo(input.photoNo);
@@ -155,29 +137,6 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
     mime,
     kind,
   }));
-
-  if (await objectExists(bucket, key)) {
-    if (kind === "measurement" || itemId != null) {
-      const url = `https://${bucket}.storage.yandexcloud.net/${key}`;
-      console.info(JSON.stringify({
-        scope: "admin-media",
-        event: "main_upload_already_exists_handled",
-        post_id: postId || null,
-        photo_no: photoNo,
-        item_id: itemId,
-        key,
-        kind,
-      }));
-      return {
-        ok: true,
-        already_exists: true,
-        key,
-        url,
-        photo_no: photoNo,
-      };
-    }
-    throw new HttpError(409, "ALREADY_EXISTS", "Main photo with this photo_no already exists");
-  }
 
   const client = getS3Client();
   try {
