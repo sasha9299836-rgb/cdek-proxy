@@ -44,7 +44,7 @@ export async function buildServer() {
 
   await app.register(multipart, {
     limits: {
-      fileSize: env.adminMainUploadMaxBytes,
+      fileSize: Math.max(env.adminMainUploadMaxBytes, env.adminDefectVideoUploadMaxBytes),
       files: 1,
     },
   });

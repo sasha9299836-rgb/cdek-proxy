@@ -86,8 +86,8 @@ function resolveVideoExt(mime: string): "mp4" | "mov" {
   return ext;
 }
 
-function buildStorageKey(postId: string, photoNo: number, ext: "mp4" | "mov"): string {
-  return `no-item/${postId}/defects/videos/${photoNo}.${ext}`;
+function buildStorageKey(postId: string, photoNo: number): string {
+  return `no-item/${postId}/defects/videos/${photoNo}.mov`;
 }
 
 export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
@@ -98,8 +98,8 @@ export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
   }
 
   const mime = String(input.file.mimetype ?? input.mimeTypeHint ?? "").trim().toLowerCase();
-  const ext = resolveVideoExt(mime);
-  const key = buildStorageKey(postId, photoNo, ext);
+  resolveVideoExt(mime);
+  const key = buildStorageKey(postId, photoNo);
   const bucket = String(env.ycBucket ?? "").trim();
   if (!bucket) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "YC_BUCKET is not configured");
