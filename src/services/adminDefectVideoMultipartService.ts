@@ -201,11 +201,10 @@ function computePartSize(fileSize: number): number {
 
 function resolveStorageKey(input: {
   postId: string;
-  itemId: number | null;
   photoNo: number;
   ext: "mp4" | "mov";
 }): string {
-  const basePrefix = input.itemId ? `${input.itemId}` : `no-item/${input.postId}`;
+  const basePrefix = `no-item/${input.postId}`;
   return `${basePrefix}/defects/videos/${input.photoNo}.${input.ext}`;
 }
 
@@ -227,8 +226,8 @@ export async function startDefectVideoMultipart(raw: unknown) {
   const fileSize = parseFileSize(row.file_size);
   const ext = resolveVideoExt(mime);
 
-  if (itemId == null && !isSafePostId(postId)) {
-    throw new HttpError(400, "BAD_PAYLOAD", "post_id is required for no-item uploads");
+  if (!isSafePostId(postId)) {
+    throw new HttpError(400, "BAD_PAYLOAD", "post_id is required for defect video uploads");
   }
 
   const accessKey = String(env.ycAccessKey ?? "").trim();
@@ -239,7 +238,7 @@ export async function startDefectVideoMultipart(raw: unknown) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "Yandex storage env is not configured");
   }
 
-  const key = resolveStorageKey({ postId, itemId, photoNo, ext });
+  const key = resolveStorageKey({ postId, photoNo, ext });
   const host = `${bucket}.storage.yandexcloud.net`;
   const publicUrl = `https://${host}/${key}`;
 
@@ -284,6 +283,7 @@ export async function startDefectVideoMultipart(raw: unknown) {
     parts: parts.length,
     part_size: partSize,
     key,
+    key_strategy: "no-item-post-id",
   }));
 
   return {
