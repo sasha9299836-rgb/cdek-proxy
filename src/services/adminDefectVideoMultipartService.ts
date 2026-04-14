@@ -10,8 +10,8 @@ import { HttpError } from "../utils/httpError";
 const SERVICE = "s3";
 const DEFAULT_REGION = "ru-central1";
 const YC_STORAGE_ENDPOINT = "https://storage.yandexcloud.net";
-const MIN_PART_SIZE = 5 * 1024 * 1024;
-const DEFAULT_PART_SIZE = 5 * 1024 * 1024;
+const MIN_PART_SIZE = 1 * 1024 * 1024;
+const DEFAULT_PART_SIZE = 1 * 1024 * 1024;
 const MAX_PARTS = 10000;
 
 const ALLOWED_VIDEO_MIME_TO_EXT: Record<string, "mp4" | "mov"> = {
