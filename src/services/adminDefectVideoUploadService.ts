@@ -36,6 +36,27 @@ function getS3Client(): S3Client {
         secretAccessKey: env.ycSecretKey,
       },
     });
+    s3Client.middlewareStack.add(
+      (next) => async (args) => {
+        const request = args.request as { headers?: Record<string, unknown> } | undefined;
+        const headers = request?.headers;
+        if (headers) {
+          const badHeaderKeys = Object.keys(headers).filter((key) => key.toLowerCase() === "x-amz-decoded-content-length");
+          for (const key of badHeaderKeys) {
+            const raw = headers[key];
+            if (raw == null || String(raw).trim().toLowerCase() === "undefined" || String(raw).trim() === "") {
+              delete headers[key];
+            }
+          }
+        }
+        return next(args);
+      },
+      {
+        step: "build",
+        name: "stripInvalidDecodedContentLengthHeader",
+        priority: "high",
+      },
+    );
   }
   return s3Client;
 }
@@ -69,20 +90,6 @@ function buildStorageKey(postId: string, photoNo: number, ext: "mp4" | "mov"): s
   return `no-item/${postId}/defects/videos/${photoNo}.${ext}`;
 }
 
-async function streamToBuffer(stream: NodeJS.ReadableStream, maxBytes: number): Promise<{ buffer: Buffer; size: number }> {
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of stream as AsyncIterable<Buffer | string>) {
-    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    total += buf.length;
-    if (total > maxBytes) {
-      throw new HttpError(413, "FILE_TOO_LARGE", `File is too large. Max ${maxBytes} bytes allowed`);
-    }
-    chunks.push(buf);
-  }
-  return { buffer: Buffer.concat(chunks), size: total };
-}
-
 export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
   const postId = parsePostId(input.postId);
   const photoNo = parsePhotoNo(input.photoNo);
@@ -97,16 +104,13 @@ export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
   if (!bucket) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "YC_BUCKET is not configured");
   }
-  const maxBytes = Math.max(1, env.adminDefectVideoUploadMaxBytes);
-  const { buffer, size } = await streamToBuffer(input.file.file, maxBytes);
 
   const client = getS3Client();
   try {
     await client.send(new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Body: buffer,
-      ContentLength: size,
+      Body: input.file.file,
       ContentType: mime,
     }));
   } catch (error) {
