@@ -14,6 +14,7 @@ import { registerAdminDefectPhotoRoutes } from "./routes/adminDefectPhoto";
 import { registerAdminDefectVideoPresignRoutes } from "./routes/adminDefectVideoPresign";
 import { registerAdminDefectVideoMultipartRoutes } from "./routes/adminDefectVideoMultipart";
 import { registerAdminDefectVideoUploadRoutes } from "./routes/adminDefectVideoUpload";
+import { registerAdminDefectVideoRelayRoutes } from "./routes/adminDefectVideoRelay";
 import { registerErrorHandler } from "./utils/errorHandler";
 
 export async function buildServer() {
@@ -62,6 +63,7 @@ export async function buildServer() {
   await registerAdminDefectVideoPresignRoutes(app);
   await registerAdminDefectVideoMultipartRoutes(app);
   await registerAdminDefectVideoUploadRoutes(app);
+  await registerAdminDefectVideoRelayRoutes(app);
 
   return app;
 }
