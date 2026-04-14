@@ -13,14 +13,6 @@ const ALLOWED_IMAGE_MIME_TO_EXT: Record<string, "jpg" | "png" | "webp"> = {
   "image/webp": "webp",
 };
 
-const ALLOWED_VIDEO_MIME_TO_EXT: Record<string, "mp4" | "mov"> = {
-  "video/mp4": "mp4",
-  "video/quicktime": "mov",
-  "video/x-quicktime": "mov",
-  "video/mov": "mov",
-  "quicktime": "mov",
-};
-
 const DEFECT_STORAGE_KEY_IMAGE_REGEX = /^(\d+|no-item\/[0-9a-f-]{36})\/defects\/images\/([1-9]|[1-4]\d|50)\.(jpg|png|webp)$/i;
 const DEFECT_STORAGE_KEY_VIDEO_REGEX = /^(\d+|no-item\/[0-9a-f-]{36})\/defects\/videos\/([1-9]|[1-4]\d|50)\.(mp4|mov)$/i;
 const DEFECT_STORAGE_KEY_LEGACY_REGEX = /^(\d+|no-item\/[0-9a-f-]{36})\/defects\/([1-9]|[1-4]\d|50)\.(jpg|png|webp)$/i;
@@ -78,24 +70,17 @@ function isSafePostId(value: string): boolean {
   return /^[0-9a-f-]{36}$/i.test(value);
 }
 
-function parseMediaType(raw: unknown): "image" | "video" {
+function parseMediaType(raw: unknown): "image" {
   const value = String(raw ?? "").trim().toLowerCase();
-  if (value === "image" || value === "video") return value;
-  throw new HttpError(400, "BAD_PAYLOAD", "media_type must be image or video");
+  if (!value || value === "image") return "image";
+  throw new HttpError(400, "BAD_PAYLOAD", "media_type must be image");
 }
 
-function resolveExtForMedia(mime: string, mediaType: "image" | "video"): "jpg" | "png" | "webp" | "mp4" | "mov" {
+function resolveExtForMedia(mime: string): "jpg" | "png" | "webp" {
   const normalized = String(mime ?? "").trim().toLowerCase();
-  if (mediaType === "image") {
-    const ext = ALLOWED_IMAGE_MIME_TO_EXT[normalized];
-    if (!ext) {
-      throw new HttpError(400, "BAD_MIME_TYPE", "Only image/jpeg, image/png, image/webp are allowed for defect images");
-    }
-    return ext;
-  }
-  const ext = ALLOWED_VIDEO_MIME_TO_EXT[normalized];
+  const ext = ALLOWED_IMAGE_MIME_TO_EXT[normalized];
   if (!ext) {
-    throw new HttpError(400, "BAD_MIME_TYPE", "Only video/mp4 or video/quicktime are allowed for defect videos");
+    throw new HttpError(400, "BAD_MIME_TYPE", "Only image/jpeg, image/png, image/webp are allowed for defect images");
   }
   return ext;
 }
@@ -104,11 +89,11 @@ function buildStorageKey(params: {
   itemId: number | null;
   postId: string;
   photoNo: number;
-  mediaType: "image" | "video";
+  mediaType: "image";
   ext: string;
 }): string {
   const basePrefix = params.itemId ? `${params.itemId}` : `no-item/${params.postId}`;
-  const folder = params.mediaType === "video" ? "videos" : "images";
+  const folder = "images";
   return `${basePrefix}/defects/${folder}/${params.photoNo}.${params.ext}`;
 }
 
@@ -150,7 +135,7 @@ export async function createDefectPhotoRecord(input: CreateDefectPhotoInput) {
   }
 
   const mime = String(input.file.mimetype ?? "").trim().toLowerCase();
-  const ext = resolveExtForMedia(mime, mediaType);
+  const ext = resolveExtForMedia(mime);
   const maxBytes = Math.max(1, env.adminMainUploadMaxBytes);
   const { buffer, size } = await streamToBuffer(input.file.file, maxBytes);
 
