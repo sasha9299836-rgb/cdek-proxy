@@ -29,6 +29,7 @@ export type AppConfig = {
   ycBucket: string;
   ycRegion: string;
   adminMainUploadMaxBytes: number;
+  adminDefectVideoUploadMaxBytes: number;
 };
 
 function readRequired(name: string): string {
@@ -80,4 +81,5 @@ export const env: AppConfig = {
   ycBucket: readOptional("YC_BUCKET"),
   ycRegion: readOptional("YC_REGION") || "ru-central1",
   adminMainUploadMaxBytes: readNumber("ADMIN_MAIN_UPLOAD_MAX_BYTES", 10 * 1024 * 1024),
+  adminDefectVideoUploadMaxBytes: readNumber("ADMIN_DEFECT_VIDEO_UPLOAD_MAX_BYTES", 200 * 1024 * 1024),
 };
