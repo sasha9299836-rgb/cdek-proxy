@@ -69,6 +69,20 @@ function buildStorageKey(postId: string, photoNo: number, ext: "mp4" | "mov"): s
   return `no-item/${postId}/defects/videos/${photoNo}.${ext}`;
 }
 
+async function streamToBuffer(stream: NodeJS.ReadableStream, maxBytes: number): Promise<{ buffer: Buffer; size: number }> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of stream as AsyncIterable<Buffer | string>) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > maxBytes) {
+      throw new HttpError(413, "FILE_TOO_LARGE", `File is too large. Max ${maxBytes} bytes allowed`);
+    }
+    chunks.push(buf);
+  }
+  return { buffer: Buffer.concat(chunks), size: total };
+}
+
 export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
   const postId = parsePostId(input.postId);
   const photoNo = parsePhotoNo(input.photoNo);
@@ -83,13 +97,16 @@ export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
   if (!bucket) {
     throw new HttpError(500, "SERVER_MISCONFIGURED", "YC_BUCKET is not configured");
   }
+  const maxBytes = Math.max(1, env.adminDefectVideoUploadMaxBytes);
+  const { buffer, size } = await streamToBuffer(input.file.file, maxBytes);
 
   const client = getS3Client();
   try {
     await client.send(new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Body: input.file.file,
+      Body: buffer,
+      ContentLength: size,
       ContentType: mime,
     }));
   } catch (error) {
@@ -130,4 +147,3 @@ export async function createDefectVideoRecord(input: CreateDefectVideoInput) {
     media_type: "video" as const,
   };
 }
-
