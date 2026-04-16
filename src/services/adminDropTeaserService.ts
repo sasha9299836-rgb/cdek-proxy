@@ -162,3 +162,29 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
   };
 }
 
+export async function clearActiveAdminDropTeaser() {
+  const supabase = getSupabaseAdminClient();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("tg_drop_teasers")
+    .update({
+      is_active: false,
+      updated_at: nowIso,
+    })
+    .eq("is_active", true)
+    .select("id");
+
+  if (error) {
+    throw new HttpError(500, "DROP_TEASER_CLEAR_FAILED", "Failed to clear active teaser", {
+      message: error.message,
+      code: error.code ?? null,
+      details: error.details ?? null,
+      hint: error.hint ?? null,
+    });
+  }
+
+  return {
+    ok: true as const,
+    cleared: Array.isArray(data) ? data.length : 0,
+  };
+}

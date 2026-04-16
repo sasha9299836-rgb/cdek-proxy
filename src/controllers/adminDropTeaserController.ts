@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import { readAdminTokenFromHeaders, requireValidAdminSession } from "../services/adminSession";
-import { upsertAdminDropTeaser } from "../services/adminDropTeaserService";
+import { clearActiveAdminDropTeaser, upsertAdminDropTeaser } from "../services/adminDropTeaserService";
 
 type UpsertDropTeaserBody = {
   title?: unknown;
@@ -18,3 +18,11 @@ export async function upsertDropTeaserHandler(
   return upsertAdminDropTeaser(request.body ?? {});
 }
 
+export async function clearActiveDropTeaserHandler(
+  request: FastifyRequest,
+) {
+  const adminToken = readAdminTokenFromHeaders(request.headers as Record<string, unknown>);
+  await requireValidAdminSession(adminToken);
+
+  return clearActiveAdminDropTeaser();
+}
