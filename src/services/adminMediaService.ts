@@ -122,7 +122,7 @@ export async function uploadMainPhotoToStorage(input: UploadMainPhotoInput): Pro
 
   const bucket = env.ycBucket;
   const basePrefix = kind === "measurement"
-    ? `measurements/${postId}`
+    ? `items/${postId}/measurement`
     : itemId
     ? `${itemId}`
     : `no-item/${postId}`;
