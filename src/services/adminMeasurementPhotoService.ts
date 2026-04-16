@@ -13,6 +13,8 @@ type CreateMeasurementPhotoInput = {
 const YC_STORAGE_ENDPOINT = "https://storage.yandexcloud.net";
 const STORAGE_KEY_MEASUREMENT_IMAGE_REGEX = /^measurements\/([0-9a-f-]{36})\/([1-9]|[1-4]\d|50)\.(jpg|png|webp)$/i;
 const STORAGE_KEY_MEASUREMENT_VIDEO_REGEX = /^measurements\/([0-9a-f-]{36})\/videos\/([1-9]|[1-4]\d|50)\.(mp4|mov)$/i;
+const STORAGE_KEY_MEASUREMENT_IMAGE_ALT_REGEX = /^items\/([0-9a-f-]{36})\/measurement\/([1-9]|[1-4]\d|50)\.(jpg|png|webp)$/i;
+const STORAGE_KEY_MEASUREMENT_VIDEO_ALT_REGEX = /^items\/([0-9a-f-]{36})\/measurement\/videos\/([1-9]|[1-4]\d|50)\.(mp4|mov)$/i;
 
 let s3Client: S3Client | null = null;
 
@@ -52,7 +54,12 @@ function parsePhotoNo(raw: unknown): number {
 
 function parseStorageKey(raw: unknown): string {
   const key = String(raw ?? "").trim();
-  if (!STORAGE_KEY_MEASUREMENT_IMAGE_REGEX.test(key) && !STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(key)) {
+  if (
+    !STORAGE_KEY_MEASUREMENT_IMAGE_REGEX.test(key)
+    && !STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(key)
+    && !STORAGE_KEY_MEASUREMENT_IMAGE_ALT_REGEX.test(key)
+    && !STORAGE_KEY_MEASUREMENT_VIDEO_ALT_REGEX.test(key)
+  ) {
     throw new HttpError(400, "BAD_PAYLOAD", "key is invalid for measurement photo");
   }
   return key;
@@ -67,7 +74,7 @@ function extractPhotoNoFromKey(key: string): number {
 }
 
 function extractPostIdFromKey(key: string): string {
-  const match = key.match(/^measurements\/([0-9a-f-]{36})\//i);
+  const match = key.match(/^measurements\/([0-9a-f-]{36})\//i) ?? key.match(/^items\/([0-9a-f-]{36})\/measurement\//i);
   if (!match?.[1]) {
     throw new HttpError(400, "BAD_PAYLOAD", "Cannot parse post_id from key");
   }
@@ -77,7 +84,7 @@ function extractPostIdFromKey(key: string): string {
 function parseMediaType(raw: unknown, key: string): "image" | "video" {
   const explicit = String(raw ?? "").trim().toLowerCase();
   if (explicit === "image" || explicit === "video") return explicit;
-  return STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(key) ? "video" : "image";
+  return STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(key) || STORAGE_KEY_MEASUREMENT_VIDEO_ALT_REGEX.test(key) ? "video" : "image";
 }
 
 function buildPublicUrlByKey(key: string): string {
@@ -199,7 +206,12 @@ export async function deleteMeasurementMediaRecord(raw: unknown) {
   if (!targetKey) {
     throw new HttpError(400, "BAD_PAYLOAD", "storage_key is required");
   }
-  if (!STORAGE_KEY_MEASUREMENT_IMAGE_REGEX.test(targetKey) && !STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(targetKey)) {
+  if (
+    !STORAGE_KEY_MEASUREMENT_IMAGE_REGEX.test(targetKey)
+    && !STORAGE_KEY_MEASUREMENT_VIDEO_REGEX.test(targetKey)
+    && !STORAGE_KEY_MEASUREMENT_IMAGE_ALT_REGEX.test(targetKey)
+    && !STORAGE_KEY_MEASUREMENT_VIDEO_ALT_REGEX.test(targetKey)
+  ) {
     throw new HttpError(400, "BAD_PAYLOAD", "storage_key is invalid for measurement media");
   }
 
