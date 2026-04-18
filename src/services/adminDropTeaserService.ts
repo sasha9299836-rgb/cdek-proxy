@@ -95,6 +95,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
     details,
     preview_images: previewImages,
     is_active: true,
+    published_at: nowIso,
     updated_at: nowIso,
   };
 
