@@ -120,6 +120,32 @@ function throwDraftWriteError(branch: DraftWriteBranch, error: unknown): never {
   throw new HttpError(500, "DRAFT_WRITE_FAILED", "Draft write failed", { branch, db });
 }
 
+async function ensureNalichieIdNotOccupied(input: {
+  supabase: ReturnType<typeof getSupabaseAdminClient>;
+  branch: DraftWriteBranch;
+  nalichieId: number | null;
+  excludePostId?: string | null;
+}) {
+  if (input.nalichieId == null) return;
+  let query = input.supabase
+    .from("tg_posts")
+    .select("id")
+    .eq("nalichie_id", input.nalichieId);
+  if (input.excludePostId) {
+    query = query.neq("id", input.excludePostId);
+  }
+  const { data, error } = await query.maybeSingle();
+  if (error) throwDraftWriteError(input.branch, error);
+  const existingId = (data as { id?: string } | null)?.id ?? null;
+  if (existingId) {
+    throw new HttpError(409, "NALICHIE_ALREADY_USED", "Nalichie id already used", {
+      nalichie_id: input.nalichieId,
+      existing_post_id: existingId,
+      branch: input.branch,
+    });
+  }
+}
+
 export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: unknown }) {
   const supabase = getSupabaseAdminClient();
   const postId = typeof input.post_id === "string" ? input.post_id.trim() : "";
@@ -140,6 +166,12 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
 
   if (postId) {
     branch = "update_by_id";
+    await ensureNalichieIdNotOccupied({
+      supabase,
+      branch,
+      nalichieId: writePayload.nalichie_id,
+      excludePostId: postId,
+    });
     const { data, error } = await supabase
       .from("tg_posts")
       .update(writePayload)
@@ -162,10 +194,17 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
 
     if ((existing as { id?: string } | null)?.id) {
       branch = "update_existing_by_item_id";
+      const existingId = (existing as { id: string }).id;
+      await ensureNalichieIdNotOccupied({
+        supabase,
+        branch,
+        nalichieId: writePayload.nalichie_id,
+        excludePostId: existingId,
+      });
       const { data, error } = await supabase
         .from("tg_posts")
         .update(writePayload)
-        .eq("id", (existing as { id: string }).id)
+        .eq("id", existingId)
         .select("*")
         .single();
       if (error) throwDraftWriteError(branch, error);
@@ -175,6 +214,12 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
   }
 
   branch = "insert_new";
+  await ensureNalichieIdNotOccupied({
+    supabase,
+    branch,
+    nalichieId: writePayload.nalichie_id,
+    excludePostId: null,
+  });
   const { data, error } = await supabase
     .from("tg_posts")
     .insert(writePayload)
