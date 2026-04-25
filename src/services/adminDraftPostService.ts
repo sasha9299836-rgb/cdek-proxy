@@ -28,6 +28,10 @@ type DraftWritePayload = {
   published_at: string | null;
 };
 
+type DraftWriteUpdatePayload = DraftWritePayload & {
+  original_price?: number;
+};
+
 type DbErrorPayload = {
   message: string;
   code: string | null;
@@ -120,6 +124,38 @@ function throwDraftWriteError(branch: DraftWriteBranch, error: unknown): never {
   throw new HttpError(500, "DRAFT_WRITE_FAILED", "Draft write failed", { branch, db });
 }
 
+function buildWritePayloadWithOriginalPrice(params: {
+  payload: DraftWritePayload;
+  existingPrice: number | null;
+  existingOriginalPrice: number | null;
+  forceInitialize: boolean;
+}): DraftWriteUpdatePayload {
+  const { payload, existingPrice, existingOriginalPrice, forceInitialize } = params;
+
+  if (forceInitialize) {
+    return {
+      ...payload,
+      original_price: payload.price,
+    };
+  }
+
+  if (typeof existingOriginalPrice === "number" && existingOriginalPrice > 0) {
+    return {
+      ...payload,
+      original_price: existingOriginalPrice,
+    };
+  }
+
+  if (typeof existingPrice === "number" && existingPrice > 0 && payload.price < existingPrice) {
+    return {
+      ...payload,
+      original_price: existingPrice,
+    };
+  }
+
+  return payload;
+}
+
 async function ensureNalichieIdNotOccupied(input: {
   supabase: ReturnType<typeof getSupabaseAdminClient>;
   branch: DraftWriteBranch;
@@ -166,15 +202,30 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
 
   if (postId) {
     branch = "update_by_id";
+    const { data: existingPost, error: existingPostError } = await supabase
+      .from("tg_posts")
+      .select("id, price, original_price")
+      .eq("id", postId)
+      .single();
+    if (existingPostError) throwDraftWriteError(branch, existingPostError);
     await ensureNalichieIdNotOccupied({
       supabase,
       branch,
       nalichieId: writePayload.nalichie_id,
       excludePostId: postId,
     });
+    const payloadWithOriginalPrice = buildWritePayloadWithOriginalPrice({
+      payload: writePayload,
+      existingPrice: Number((existingPost as { price?: unknown }).price ?? 0),
+      existingOriginalPrice: (() => {
+        const value = (existingPost as { original_price?: unknown }).original_price;
+        return typeof value === "number" ? value : null;
+      })(),
+      forceInitialize: false,
+    });
     const { data, error } = await supabase
       .from("tg_posts")
-      .update(writePayload)
+      .update(payloadWithOriginalPrice)
       .eq("id", postId)
       .select("*")
       .single();
@@ -187,7 +238,7 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
     branch = "select_by_item_id";
     const { data: existing, error: existingError } = await supabase
       .from("tg_posts")
-      .select("id")
+      .select("id, price, original_price")
       .eq("item_id", writePayload.item_id)
       .maybeSingle();
     if (existingError) throwDraftWriteError(branch, existingError);
@@ -201,9 +252,18 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
         nalichieId: writePayload.nalichie_id,
         excludePostId: existingId,
       });
+      const payloadWithOriginalPrice = buildWritePayloadWithOriginalPrice({
+        payload: writePayload,
+        existingPrice: Number((existing as { price?: unknown }).price ?? 0),
+        existingOriginalPrice: (() => {
+          const value = (existing as { original_price?: unknown }).original_price;
+          return typeof value === "number" ? value : null;
+        })(),
+        forceInitialize: false,
+      });
       const { data, error } = await supabase
         .from("tg_posts")
-        .update(writePayload)
+        .update(payloadWithOriginalPrice)
         .eq("id", existingId)
         .select("*")
         .single();
@@ -222,7 +282,12 @@ export async function writeAdminDraftPost(input: { post_id?: unknown; payload?: 
   });
   const { data, error } = await supabase
     .from("tg_posts")
-    .insert(writePayload)
+    .insert(buildWritePayloadWithOriginalPrice({
+      payload: writePayload,
+      existingPrice: null,
+      existingOriginalPrice: null,
+      forceInitialize: true,
+    }))
     .select("*")
     .single();
   if (error) throwDraftWriteError(branch, error);
