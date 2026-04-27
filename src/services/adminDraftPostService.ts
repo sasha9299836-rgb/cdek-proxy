@@ -11,6 +11,7 @@ type DraftWriteBranch =
 type DraftWritePayload = {
   item_id: number | null;
   nalichie_id: number | null;
+  is_in_update: boolean;
   post_type: "warehouse" | "consignment";
   origin_profile: "ODN" | "YAN";
   packaging_preset: "A2" | "A3" | "A4";
@@ -46,6 +47,17 @@ function normalizeOptionalString(value: unknown): string | null {
   return text ? text : null;
 }
 
+function normalizeBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "") return false;
+  }
+  return fallback;
+}
+
 function normalizePayload(raw: unknown): DraftWritePayload | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
@@ -63,6 +75,7 @@ function normalizePayload(raw: unknown): DraftWritePayload | null {
   const price = Number(row.price);
   const itemId = row.item_id == null ? null : Number(row.item_id);
   const nalichieId = row.nalichie_id == null ? null : Number(row.nalichie_id);
+  const isInUpdate = normalizeBoolean(row.is_in_update, false);
   const hasDefects = Boolean(row.has_defects);
   const defectsText = hasDefects ? normalizeOptionalString(row.defects_text) : null;
   const measurementsText = normalizeOptionalString(row.measurements_text);
@@ -75,6 +88,7 @@ function normalizePayload(raw: unknown): DraftWritePayload | null {
   return {
     item_id: itemId,
     nalichie_id: nalichieId,
+    is_in_update: isInUpdate,
     post_type: postType,
     origin_profile: origin,
     packaging_preset: packaging,
