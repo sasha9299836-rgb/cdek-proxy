@@ -6,6 +6,7 @@ type UpsertDropTeaserInput = {
   short_text?: unknown;
   details?: unknown;
   preview_images?: unknown;
+  is_public_immediately?: unknown;
 };
 
 type UpsertDropTeaserResponse = {
@@ -17,6 +18,7 @@ type UpsertDropTeaserResponse = {
     details: string | null;
     preview_images: string[];
     is_active: boolean;
+    is_public_immediately: boolean;
     updated_at: string;
   };
 };
@@ -36,6 +38,11 @@ function parseOptionalText(raw: unknown, maxLength: number): string | null {
   const value = String(raw ?? "").trim();
   if (!value) return null;
   return value.slice(0, maxLength);
+}
+
+function parseBooleanField(raw: unknown): boolean {
+  if (typeof raw === "boolean") return raw;
+  return false;
 }
 
 function parsePreviewImages(raw: unknown): string[] {
@@ -71,6 +78,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
   const shortText = parseTextField(input.short_text, "short_text", 400);
   const details = parseOptionalText(input.details, 2000);
   const previewImages = parsePreviewImages(input.preview_images);
+  const isPublicImmediately = parseBooleanField(input.is_public_immediately);
   const supabase = getSupabaseAdminClient();
   const nowIso = new Date().toISOString();
 
@@ -95,6 +103,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
     details,
     preview_images: previewImages,
     is_active: true,
+    is_public_immediately: isPublicImmediately,
     published_at: nowIso,
     updated_at: nowIso,
   };
@@ -104,7 +113,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
       .from("tg_drop_teasers")
       .update(payload)
       .eq("id", activeRow.id)
-      .select("id, title, short_text, details, preview_images, is_active, updated_at")
+      .select("id, title, short_text, details, preview_images, is_active, is_public_immediately, updated_at")
       .single();
 
     if (error) {
@@ -127,6 +136,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
           ? ((data as { preview_images?: unknown[] }).preview_images ?? []).map((value) => String(value ?? "")).filter(Boolean)
           : previewImages,
         is_active: Boolean((data as { is_active?: unknown }).is_active ?? true),
+        is_public_immediately: Boolean((data as { is_public_immediately?: unknown }).is_public_immediately ?? isPublicImmediately),
         updated_at: String((data as { updated_at?: unknown }).updated_at ?? nowIso),
       },
     };
@@ -135,7 +145,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
   const { data, error } = await supabase
     .from("tg_drop_teasers")
     .insert(payload)
-    .select("id, title, short_text, details, preview_images, is_active, updated_at")
+    .select("id, title, short_text, details, preview_images, is_active, is_public_immediately, updated_at")
     .single();
 
   if (error) {
@@ -158,6 +168,7 @@ export async function upsertAdminDropTeaser(input: UpsertDropTeaserInput): Promi
         ? ((data as { preview_images?: unknown[] }).preview_images ?? []).map((value) => String(value ?? "")).filter(Boolean)
         : previewImages,
       is_active: Boolean((data as { is_active?: unknown }).is_active ?? true),
+      is_public_immediately: Boolean((data as { is_public_immediately?: unknown }).is_public_immediately ?? isPublicImmediately),
       updated_at: String((data as { updated_at?: unknown }).updated_at ?? nowIso),
     },
   };

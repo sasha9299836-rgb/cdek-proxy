@@ -7,6 +7,7 @@ type UpsertDropTeaserBody = {
   short_text?: unknown;
   details?: unknown;
   preview_images?: unknown;
+  is_public_immediately?: unknown;
 };
 
 export async function upsertDropTeaserHandler(
