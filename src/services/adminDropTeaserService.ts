@@ -23,6 +23,20 @@ type UpsertDropTeaserResponse = {
   };
 };
 
+type ActiveDropTeaserResponse = {
+  ok: true;
+  teaser: {
+    id: string;
+    title: string;
+    short_text: string;
+    details: string | null;
+    preview_images: string[];
+    is_active: boolean;
+    is_public_immediately: boolean;
+    updated_at: string;
+  } | null;
+};
+
 function parseTextField(raw: unknown, field: string, maxLength: number): string {
   const value = String(raw ?? "").trim();
   if (!value) {
@@ -198,5 +212,48 @@ export async function clearActiveAdminDropTeaser() {
   return {
     ok: true as const,
     cleared: Array.isArray(data) ? data.length : 0,
+  };
+}
+
+export async function getActiveAdminDropTeaser(): Promise<ActiveDropTeaserResponse> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("tg_drop_teasers")
+    .select("id, title, short_text, details, preview_images, is_active, is_public_immediately, updated_at")
+    .eq("is_active", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new HttpError(500, "DROP_TEASER_READ_FAILED", "Failed to read active teaser", {
+      message: error.message,
+      code: error.code ?? null,
+      details: error.details ?? null,
+      hint: error.hint ?? null,
+    });
+  }
+
+  if (!data) {
+    return {
+      ok: true,
+      teaser: null,
+    };
+  }
+
+  return {
+    ok: true,
+    teaser: {
+      id: String((data as { id?: unknown }).id ?? ""),
+      title: String((data as { title?: unknown }).title ?? ""),
+      short_text: String((data as { short_text?: unknown }).short_text ?? ""),
+      details: ((data as { details?: unknown }).details == null ? null : String((data as { details?: unknown }).details)) ?? null,
+      preview_images: Array.isArray((data as { preview_images?: unknown }).preview_images)
+        ? ((data as { preview_images?: unknown[] }).preview_images ?? []).map((value) => String(value ?? "")).filter(Boolean)
+        : [],
+      is_active: Boolean((data as { is_active?: unknown }).is_active ?? true),
+      is_public_immediately: Boolean((data as { is_public_immediately?: unknown }).is_public_immediately ?? false),
+      updated_at: String((data as { updated_at?: unknown }).updated_at ?? ""),
+    },
   };
 }
